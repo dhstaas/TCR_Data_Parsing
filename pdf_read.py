@@ -4,55 +4,23 @@ import time #needed to audit
 import xlsxwriter
 
 
-#countDirectory = raw_input("Enter the directory where the count files are located: ")
-countDirectory = r"C:\Users\dsta\Documents\GitHub\TCR_Data_Parsing_27\Demo Counts\typical vol"
+countDirectory = raw_input("Enter the directory where the count files are located: ")
+#countDirectory = r"C:\Users\dsta\Documents\GitHub\TCR_Data_Parsing_27\Demo Counts\typical vol"
 os.chdir(countDirectory)
 pdfFileList=[fn for fn in os.listdir(countDirectory) if fn.endswith('.pdf')] #creates a list of pdf files in the directory
 
 start_time = time.time() #start audit timer
 
 
-###############
-# Excel Setup #
-###############
-
-#workbookName = raw_input("Please enter the name of the Excel workbook to be generated: ")
-
-def workbookSetup(workbookName):
-    workbook = xlsxwriter.Workbook(workbookName + ".xlsx")
-    worksheet = workbook.add_worksheet()
-    worksheet.write('A1', 'Station', bold)
-    worksheet.write('B1', 'Date', bold)
-    worksheet.write('C1', 'Road Name', bold)
-    worksheet.write('D1', 'From', bold)
-    worksheet.write('E1', 'To', bold)
-    worksheet.write('F1', 'Municipality', bold)
-    worksheet.write('G1', 'Year', bold)
-    worksheet.write('H1', 'Northing', bold)
-    worksheet.write('I1', 'Easting', bold)
-    worksheet.write('J1', 'AADT_1', bold)
-    worksheet.write('K1', 'AADT_2', bold)
-    worksheet.write('L1', 'PM_45_1', bold)
-    worksheet.write('M1', 'PM_45_2', bold)
-    worksheet.write('N1', 'Sp85_1', bold)
-    worksheet.write('O1', 'Sp85_2', bold)
-    worksheet.write('P1', 'Dir_1', bold)
-    worksheet.write('Q1', 'Dir_2', bold)
 
 
-
-
-#####Things to iterate through######
-#for countPdf in pdfFileList:
- #   stationDataScrape(countPdf)
-
-stationData =[] #list where we are storing the count data for each station
-
+   
 
 def stationDataScrape(countPdf):
     pdf=pdfquery.PDFQuery(countPdf)
-    if reportType == 2:
-        processCount
+    if reportType(countPdf) == 2:
+        return processCount(countPdf)
+ 
 
 def reportType(countPdf):
     pdf=pdfquery.PDFQuery(countPdf)
@@ -68,22 +36,71 @@ def reportType(countPdf):
     return  countType
 
 def processCount(countPdf):
+    stationData =[] #list where we are storing the count data for each station
     stationData.extend([(getStation(countPdf)),"Date", "Road Name", "From", "To", "Municipality", "Year", "Northing", "Easting",
                         (getAADT(countPdf)[0]), (getAADT(countPdf)[1]), (getPMPeak(countPdf)[0]), (getPMPeak(countPdf)[1]),
                         "Sp85_1", "Sp85_2", (getDirection(countPdf)[0]),(getDirection(countPdf)[1])]) 
-    return stationData                  
 
+    return stationData
+###############
+# Excel Setup #
+###############
+'''def stationToExcel(stationData):
+    workbook = xlsxwriter.Workbook(str(os.curdir) + workbookName + ".xlsx")
+    worksheet = workbook.add_worksheet()
+    bold = workbook.add_format({'bold': True})
+    worksheet.write('A1', 'Station', bold)
+    worksheet.write('B1', 'Date', bold)
+    worksheet.write('C1', 'Road_Name', bold)
+    worksheet.write('D1', 'From', bold)
+    worksheet.write('E1', 'To', bold)
+    worksheet.write('F1', 'Municipality', bold)
+    worksheet.write('G1', 'Year', bold)
+    worksheet.write('H1', 'Northing', bold)
+    worksheet.write('I1', 'Easting', bold)
+    worksheet.write('J1', 'AADT_1', bold)
+    worksheet.write('K1', 'AADT_2', bold)
+    worksheet.write('L1', 'PM_45_1', bold)
+    worksheet.write('M1', 'PM_45_2', bold)
+    worksheet.write('N1', 'Sp85_1', bold)
+    worksheet.write('O1', 'Sp85_2', bold)
+    worksheet.write('P1', 'Dir_1', bold)
+    worksheet.write('Q1', 'Dir_2', bold)
+
+    
+    col = 0
+    for station, date, RoadName, From, To, Municipality, Year, Northing, Easting, AADT_1, AADT_2, PM_45_1, PM_45_2, Sp_85_1, Sp_85_2, Dir_1, Dir_2 in ([stationData]):
+        worksheet.write(row, col,   station)
+        worksheet.write(row, col + 1,   date)
+        worksheet.write(row, col + 2,   RoadName)
+        worksheet.write(row, col + 3,   From)
+        worksheet.write(row, col + 4,   To)
+        worksheet.write(row, col + 5,   Municipality)
+        worksheet.write(row, col + 6,   Year)
+        worksheet.write(row, col + 7,   Northing)
+        worksheet.write(row, col + 8,   Easting)
+        worksheet.write(row, col + 9,   AADT_1)
+        worksheet.write(row, col + 10,   AADT_2)
+        worksheet.write(row, col + 11,   PM_45_1)
+        worksheet.write(row, col + 12,   PM_45_2)
+        worksheet.write(row, col + 13,   Sp_85_1)
+        worksheet.write(row, col + 14,   Sp_85_2)
+        worksheet.write(row, col + 15,   Dir_1)
+        worksheet.write(row, col + 16,   Dir_2)
+    row += 1
+        
+        
+'''
 ###########
 # Station #
 ###########
 
 def getStation(countPdf):
     pdf=pdfquery.PDFQuery(countPdf)
-    pdf.load(1)
-    station = pdf.pq('LTTextLineHorizontal:in_bbox("36.0, 580.368, 186.0, 610.368")').text()
-    station = station[-6:]
+    pdf.load(1) #only need to load one page as it is the same on both (saves some time)
+    station = pdf.pq('LTTextLineHorizontal:in_bbox("36.0, 580.368, 186.0, 610.368")').text() #x, y cords in points of the text we want
+    station = station[-6:] #text line includes "station:" so we take just the last 6 chaaracters of the string
     return station
-    print station
     
     
 #############
@@ -135,7 +152,64 @@ def getPMPeak(countPdf):
 
 
 #print getAADT("0005.pdf")
-print processCount("0005.pdf")
+#print processCount("0005.pdf")
 
+#stationToExcel((processCount("0005.pdf")))
+#stationToExcel(['860005', 'Date', 'Road Name', 'From', 'To', 'Municipality', 'Year', 'Northing', 'Easting', '1097', '1087', '80', '114', 'Sp85_1', 'Sp85_2', 'Northbound', 'Southbound'])
+
+#####Things to iterate through######
+#for countPdf in pdfFileList:
+ #   stationDataScrape(countPdf)
+
+
+###############
+# Excel Setup #
+###############
+workbookName = raw_input("Please enter the name of the Excel workbook to be generated: ")
+
+workbook = xlsxwriter.Workbook(str(os.curdir) + workbookName + ".xlsx")
+worksheet = workbook.add_worksheet()
+bold = workbook.add_format({'bold': True})
+worksheet.write('A1', 'Station', bold)
+worksheet.write('B1', 'Date', bold)
+worksheet.write('C1', 'Road_Name', bold)
+worksheet.write('D1', 'From', bold)
+worksheet.write('E1', 'To', bold)
+worksheet.write('F1', 'Municipality', bold)
+worksheet.write('G1', 'Year', bold)
+worksheet.write('H1', 'Northing', bold)
+worksheet.write('I1', 'Easting', bold)
+worksheet.write('J1', 'AADT_1', bold)
+worksheet.write('K1', 'AADT_2', bold)
+worksheet.write('L1', 'PM_45_1', bold)
+worksheet.write('M1', 'PM_45_2', bold)
+worksheet.write('N1', 'Sp85_1', bold)
+worksheet.write('O1', 'Sp85_2', bold)
+worksheet.write('P1', 'Dir_1', bold)
+worksheet.write('Q1', 'Dir_2', bold)
+
+for countPdf in pdfFileList:
+    #stationData = stationDataScrape(countPdf)
+    row = 1
+    col = 0
+    for station, date, RoadName, From, To, Municipality, Year, Northing, Easting, AADT_1, AADT_2, PM_45_1, PM_45_2, Sp_85_1, Sp_85_2, Dir_1, Dir_2 in ([(stationDataScrape(countPdf))]):
+        worksheet.write(row, col,   station)
+        worksheet.write(row, col + 1,   date)
+        worksheet.write(row, col + 2,   RoadName)
+        worksheet.write(row, col + 3,   From)
+        worksheet.write(row, col + 4,   To)
+        worksheet.write(row, col + 5,   Municipality)
+        worksheet.write(row, col + 6,   Year)
+        worksheet.write(row, col + 7,   Northing)
+        worksheet.write(row, col + 8,   Easting)
+        worksheet.write(row, col + 9,   AADT_1)
+        worksheet.write(row, col + 10,   AADT_2)
+        worksheet.write(row, col + 11,   PM_45_1)
+        worksheet.write(row, col + 12,   PM_45_2)
+        worksheet.write(row, col + 13,   Sp_85_1)
+        worksheet.write(row, col + 14,   Sp_85_2)
+        worksheet.write(row, col + 15,   Dir_1)
+        worksheet.write(row, col + 16,   Dir_2)
+    row += 1
 
 print "My program took", time.time() - start_time, "to run"
