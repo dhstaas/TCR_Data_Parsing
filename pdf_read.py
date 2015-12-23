@@ -12,14 +12,15 @@ pdfFileList=[fn for fn in os.listdir(countDirectory) if fn.endswith('.pdf')] #cr
 start_time = time.time() #start audit timer
 
 
+countData = [] #list to store all the station information 
 
-
-   
+#checks the report type and then passes the pdf to be processed if it is a NYSDOT 2 Page Volume report   
 
 def stationDataScrape(countPdf):
     pdf=pdfquery.PDFQuery(countPdf)
     if reportType(countPdf) == 2:
-        return processCount(countPdf)
+        countData.append((processCount(countPdf)))
+    return countData 
  
 
 def reportType(countPdf):
@@ -45,8 +46,10 @@ def processCount(countPdf):
 ###############
 # Excel Setup #
 ###############
-'''def stationToExcel(stationData):
-    workbook = xlsxwriter.Workbook(str(os.curdir) + workbookName + ".xlsx")
+def stationToExcel(countData):
+# Creates workbook
+    workbookName = raw_input("Please enter the name of the Excel workbook to be generated: ")
+    workbook = xlsxwriter.Workbook((str(os.curdir)[:-1]) + workbookName + ".xlsx")
     worksheet = workbook.add_worksheet()
     bold = workbook.add_format({'bold': True})
     worksheet.write('A1', 'Station', bold)
@@ -67,9 +70,9 @@ def processCount(countPdf):
     worksheet.write('P1', 'Dir_1', bold)
     worksheet.write('Q1', 'Dir_2', bold)
 
-    
+    row =1
     col = 0
-    for station, date, RoadName, From, To, Municipality, Year, Northing, Easting, AADT_1, AADT_2, PM_45_1, PM_45_2, Sp_85_1, Sp_85_2, Dir_1, Dir_2 in ([stationData]):
+    for station, date, RoadName, From, To, Municipality, Year, Northing, Easting, AADT_1, AADT_2, PM_45_1, PM_45_2, Sp_85_1, Sp_85_2, Dir_1, Dir_2 in (countData):
         worksheet.write(row, col,   station)
         worksheet.write(row, col + 1,   date)
         worksheet.write(row, col + 2,   RoadName)
@@ -87,10 +90,10 @@ def processCount(countPdf):
         worksheet.write(row, col + 14,   Sp_85_2)
         worksheet.write(row, col + 15,   Dir_1)
         worksheet.write(row, col + 16,   Dir_2)
-    row += 1
+        row += 1
         
         
-'''
+
 ###########
 # Station #
 ###########
@@ -158,14 +161,18 @@ def getPMPeak(countPdf):
 #stationToExcel(['860005', 'Date', 'Road Name', 'From', 'To', 'Municipality', 'Year', 'Northing', 'Easting', '1097', '1087', '80', '114', 'Sp85_1', 'Sp85_2', 'Northbound', 'Southbound'])
 
 #####Things to iterate through######
-#for countPdf in pdfFileList:
- #   stationDataScrape(countPdf)
+
+
+for countPdf in pdfFileList:
+    stationDataScrape(countPdf)
+stationToExcel(countData)
+
 
 
 ###############
 # Excel Setup #
 ###############
-workbookName = raw_input("Please enter the name of the Excel workbook to be generated: ")
+"""workbookName = raw_input("Please enter the name of the Excel workbook to be generated: ")
 
 workbook = xlsxwriter.Workbook(str(os.curdir) + workbookName + ".xlsx")
 worksheet = workbook.add_worksheet()
@@ -211,5 +218,5 @@ for countPdf in pdfFileList:
         worksheet.write(row, col + 15,   Dir_1)
         worksheet.write(row, col + 16,   Dir_2)
     row += 1
-
+"""
 print "My program took", time.time() - start_time, "to run"
