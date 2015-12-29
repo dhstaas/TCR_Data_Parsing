@@ -5,7 +5,10 @@ import time #needed to audit
 
 #############################################################################
 #                                                                           #
-#         Traffic Count PDF Parser Created by David Staas UCTC              #
+#                       Traffic Count PDF Parser                            #
+#                              Created by                                   # 
+#                             David Staas                                   #
+#                                 UCTC                                      #
 #                                                                           #
 #############################################################################
 
@@ -20,6 +23,11 @@ pdfFileList=[fn for fn in os.listdir(countDirectory) if fn.endswith('.pdf')] #cr
 workbookName = raw_input("Please enter the name of the Excel workbook to be generated: ") #establises output excel file
 
 start_time = time.time() #start audit timer
+
+directionList = []
+volumeList = []
+pmPeakList = []
+station = ""
 
 
 countData = [] # Global list to store all the station information 
@@ -53,12 +61,15 @@ def reportType(countPdf):
     pageNum = pdf.doc.catalog['Pages'].resolve()['Count']
     if pageNum == 3:
         countType = 3 #"NYSDOT 3 Page Volume"
+        print "NYSDOT 3 page report not supported"
     elif pageNum == 2:
         countType = 2 #"NYSDOT 2 Page Volume"
     elif pageNum == 1:
         countType = 1 #"Class or Speed Count"
+        print "Class and Speed Count not suppoted"
     else:
         countType = 4 #"Unknown Count Type"
+        print "Unknown pdf. Is this a Count?"
     return  countType
 
 
@@ -70,9 +81,23 @@ def reportType(countPdf):
 ########################
 def processCount(countPdf):
     stationData =[] #list where we are storing the count data for each station
-    stationData.extend([(getStation(countPdf)),"Date", "Road Name", "From", "To", "Municipality", "Year", "Northing", "Easting",
-                        (getAADT(countPdf)[0]), (getAADT(countPdf)[1]), (getPMPeak(countPdf)[0]), (getPMPeak(countPdf)[1]),
-                        "Sp85_1", "Sp85_2", (getDirection(countPdf)[0]),(getDirection(countPdf)[1])]) 
+    ###############################
+    #populate the global variables#
+    ###############################
+    #individually#
+    '''volumeList = getAADT(countPdf)
+    pmPeakList = getPMPeak(countPdf)
+    directionList = getDirection(countPdf)
+    station = getStation(countPdf)'''
+    #by page load type#
+    '''getSinglePageData(countPdf)
+    getMultiPageData(countPdf)'''
+
+    getAllCountData(countPdf)
+    
+    stationData.extend([(station),"Date", "Road Name", "From", "To", "Municipality", "Year", "Northing", "Easting",
+                        (volumeList[0]), (volumeList[1]), (pmPeakList[0]), (pmPeakList[1]),
+                        "Sp85_1", "Sp85_2", (directionList[0]),(directionList[1])]) 
 
     return stationData
 
@@ -127,7 +152,128 @@ def stationToExcel(countData):
         worksheet.write(row, col + 16,   Dir_2)
         row += 1
         
-        
+#####################################
+#        DATA EXTRACTION            #
+#####################################
+
+def getAllCountData(countPdf):
+    global station
+    global directionList
+    global volumeList
+    global pmPeakList
+    directionList = []
+    volumeList = []    
+    pmPeakList = []
+    pdf=pdfquery.PDFQuery(countPdf)
+    for page in range(0,(reportType(countPdf))): #iterates through each page of the pdf report to get required data        
+        pdf=pdfquery.PDFQuery(countPdf)
+        pdf.load(page)
+        if page == 0: #pulls single page data
+            #############
+            #  Station  #
+            #############
+            station = pdf.pq('LTTextLineHorizontal:in_bbox("36.0, 580.368, 186.0, 610.368")').text() #x, y cords in points of the text we want
+            station = station[-6:] #text line includes "station:" so we take just the last 6 chaaracters of the string
+
+            #############
+            # Driection #
+            #############
+            directionTMP = pdf.pq('LTTextLineHorizontal:in_bbox("83.0, 537.0, 250.0, 575.0")').text()
+            directionTMPList = directionTMP.split()
+            direction1 = directionTMPList[-1:]
+            if direction1[0] == "Northbound":
+                direction2 = "Southbound"
+            elif direction1[0] == "Eastbound":
+                direction2 = "Westbound"
+            else:
+                direction1 = "Check PDF"
+                direction2 = "Check PDF"
+            directionList.extend((direction1[0], direction2))
+            
+            #########
+            #PM Peak#
+            #########          
+            pmPeak4_5 = pdf.pq('LTTextLineHorizontal:in_bbox("475.0, 137.0, 496.0, 504.0")').text() #this has all values in the column (daily counts and the avg)
+            pmPeakListTMP = pmPeak4_5.split()
+            pmPeakList.extend((pmPeakListTMP[-1:])) #only adds the final number from the column which is the avg, ignoring the daily counts
+
+            ##############
+            #    AADT    #
+            ##############
+            AADT = pdf.pq('LTTextLineHorizontal:in_bbox("658.38, 67.428, 808, 97.428")').text()#no need to split as with pmPeak and others as only the value we want is supplied
+            volumeList.append(AADT) 
+        else:
+            #########
+            #PM Peak#
+            #########
+            pmPeak4_5 = pdf.pq('LTTextLineHorizontal:in_bbox("475.0, 137.0, 496.0, 504.0")').text() #this has all values in the column (daily counts and the avg)
+            pmPeakListTMP = pmPeak4_5.split()
+            pmPeakList.extend((pmPeakListTMP[-1:])) #only adds the final number from the column which is the avg, ignoring the daily counts
+
+            ##############
+            #    AADT    #
+            ##############
+            AADT = pdf.pq('LTTextLineHorizontal:in_bbox("658.38, 67.428, 808, 97.428")').text()#no need to split as with pmPeak and others as only the value we want is supplied
+            volumeList.append(AADT)
+
+
+#########################
+''' Single Page Loads'''
+#########################
+
+def getSinglePageData(countPdf, page):
+    global station
+    global directionList
+    directionList = []
+    ###########
+    # Station #
+    ###########
+    
+    pdf=pdfquery.PDFQuery(countPdf)
+    pdf.load(page) #only need to load one page as it is the same on both (saves some time)
+    station = pdf.pq('LTTextLineHorizontal:in_bbox("36.0, 580.368, 186.0, 610.368")').text() #x, y cords in points of the text we want
+    station = station[-6:] #text line includes "station:" so we take just the last 6 chaaracters of the string
+
+    #############
+    # Driection #
+    #############
+    directionTMP = pdf.pq('LTTextLineHorizontal:in_bbox("83.0, 537.0, 250.0, 575.0")').text()
+    directionTMPList = directionTMP.split()
+    direction1 = directionTMPList[-1:]
+    if direction1[0] == "Northbound":
+        direction2 = "Southbound"
+    elif direction1[0] == "Eastbound":
+        direction2 = "Westbound"
+    else:
+        direction1 = "Check PDF"
+        direction2 = "Check PDF"
+    directionList.extend((direction1[0], direction2))
+
+#########################
+''' Multi Page Loads '''
+#########################
+def getMultiPageData(countPdf):
+    global volumeList
+    global pmPeakList
+    volumeList = []    
+    pmPeakList = [] #clears out values previously stored in global variable
+
+    pdf=pdfquery.PDFQuery(countPdf)
+    for page in range(0,(reportType(countPdf))): #iterates through each page of the pdf report to get PM peak
+        pdf.load(page)            
+        pmPeak4_5 = pdf.pq('LTTextLineHorizontal:in_bbox("475.0, 137.0, 496.0, 504.0")').text() #this has all values in the column (daily counts and the avg)
+        pmPeakListTMP = pmPeak4_5.split()
+        pmPeakList.extend((pmPeakListTMP[-1:])) #only uses the final number from the column which is the avg, ignoring the daily counts
+        AADT = pdf.pq('LTTextLineHorizontal:in_bbox("658.38, 67.428, 808, 97.428")').text()#no need to split as with pmPeak and others as only the value we want is supplied
+        volumeList.append(AADT) 
+
+#########################
+''' Individual Loads '''
+##   No longer used    ##
+#########################
+
+
+
 
 ###########
 # Station #
@@ -135,7 +281,7 @@ def stationToExcel(countData):
 
 def getStation(countPdf):
     pdf=pdfquery.PDFQuery(countPdf)
-    pdf.load(1) #only need to load one page as it is the same on both (saves some time)
+    pdf.load(0) #only need to load one page as it is the same on both (saves some time)
     station = pdf.pq('LTTextLineHorizontal:in_bbox("36.0, 580.368, 186.0, 610.368")').text() #x, y cords in points of the text we want
     station = station[-6:] #text line includes "station:" so we take just the last 6 chaaracters of the string
     return station
@@ -153,30 +299,41 @@ def getStation(countPdf):
 
 
 def getDirection(countPdf):
-    pdf=pdfquery.PDFQuery(countPdf)
+    global directionList
     directionList = []
     pdf=pdfquery.PDFQuery(countPdf)
-    for page in range(0,(reportType(countPdf))): #iterates through each page of the pdf report to get direction
+    pdf.load(0)
+    directionTMP = pdf.pq('LTTextLineHorizontal:in_bbox("83.0, 537.0, 250.0, 575.0")').text()
+    directionTMPList = directionTMP.split()
+    direction1 = directionTMPList[-1:]
+    if direction1[0] == "Northbound":
+        direction2 = "Southbound"
+    elif direction1[0] == "Eastbound":
+        direction2 = "Westbound"
+    else:
+        direction1 = "Check PDF"
+        direction2 = "Check PDF"
+    directionList.extend((direction1[0], direction2))
+    '''for page in range(0,(reportType(countPdf))): #iterates through each page of the pdf report to get direction
         pdf.load(page)
         directionTMP = pdf.pq('LTTextLineHorizontal:in_bbox("83.0, 537.0, 250.0, 575.0")').text()
         directionTMPList = directionTMP.split()
-        directionList.extend((directionTMPList[-1:]))
+        print directionTMPList
+        directionList.extend((directionTMPList[-1:]))'''
+    
     return directionList
 
 
 ##############
 #    AADT    #
 ##############
-''' Needs to be cleaned up, still searching for AADT rather than going to the specific cords of the AADT'''
 
 def getAADT(countPdf):
+    global volumeList
+    volumeList = [] #clears out values previously stored in global variable
     pdf=pdfquery.PDFQuery(countPdf)
     pdf.load()
-    AADT_label = pdf.pq('LTTextLineHorizontal:contains("AADT")')
-    left_corner = float(AADT_label.attr('x0'))
-    bottom_corner = float(AADT_label.attr('y0'))
-    #print left_corner, bottom_corner
-    AADT = pdf.pq('LTTextLineHorizontal:in_bbox("%s, %s, %s, %s")' % (left_corner, bottom_corner -30, left_corner+150, bottom_corner)).text()
+    AADT = pdf.pq('LTTextLineHorizontal:in_bbox("658.38, 67.428, 808, 97.428")').text()
     #print AADT
     volumeList = AADT.split()
     return volumeList
@@ -188,13 +345,14 @@ def getAADT(countPdf):
 
 def getPMPeak(countPdf):
     #pdf.load(1) #Do one page at a time as this returns all the values in the 4 to 5 column (days and the final avg)
-    pmPeakList = []
+    global pmPeakList
+    pmPeakList = [] #clears out values previously stored in global variable
     pdf=pdfquery.PDFQuery(countPdf)
     for page in range(0,(reportType(countPdf))): #iterates through each page of the pdf report to get PM peak
         pdf.load(page)
-        pmPeak4_5 = pdf.pq('LTTextLineHorizontal:in_bbox("475.0, 137.0, 496.0, 504.0")').text()
+        pmPeak4_5 = pdf.pq('LTTextLineHorizontal:in_bbox("475.0, 137.0, 496.0, 504.0")').text() #this has all values in the column (daily counts and the avg)
         pmPeakListTMP = pmPeak4_5.split()
-        pmPeakList.extend((pmPeakListTMP[-1:]))
+        pmPeakList.extend((pmPeakListTMP[-1:])) #only adds the final number from the column which is the avg, ignoring the daily counts
     return pmPeakList
 
     
@@ -207,10 +365,11 @@ def getPMPeak(countPdf):
 
 #stationToExcel((processCount("0005.pdf")))
 #stationToExcel(['860005', 'Date', 'Road Name', 'From', 'To', 'Municipality', 'Year', 'Northing', 'Easting', '1097', '1087', '80', '114', 'Sp85_1', 'Sp85_2', 'Northbound', 'Southbound'])
-
+#print getDirection("0005.pdf")
 #############
 # Main loop #
 #############
+
 
 for countPdf in pdfFileList:
     print "Reading " + countPdf
