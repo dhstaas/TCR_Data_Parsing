@@ -16,22 +16,63 @@ import time #needed to audit
 # Establish a working environment #
 ###################################
 
-countDirectory = raw_input("Enter the directory where pdf versions of the Traffic Count Hourly Reports are located: ")
-#countDirectory = r"C:\Users\dsta\Documents\GitHub\TCR_Data_Parsing_27\Demo Counts\typical vol" #can set static directory for testing
+#countDirectory = raw_input("Enter the directory where pdf versions of the Traffic Count Hourly Reports are located: ")
+countDirectory = r"C:\Users\dsta\Documents\GitHub\TCR_Data_Parsing_27\Demo Counts\typical vol" #can set static directory for testing
 os.chdir(countDirectory)
 pdfFileList=[fn for fn in os.listdir(countDirectory) if fn.endswith('.pdf')] #creates a list of pdf files in the directory
+peak_start = int(raw_input("Enter desired peak hour starting time (0 - 24 eg. enter 16 for 4PM):" ))
+peak_end = int(raw_input("Enter desired peak hour ending time (0 - 24 eg. enter 17 for 5PM):" ))
 workbookName = raw_input("Please enter the name of the Excel workbook to be generated: ") #establises output excel file
 
 start_time = time.time() #start audit timer
 
-directionList = []
+'''directionList = []
 volumeList = []
 pmPeakList = []
 station = ""
+date = ""
+roadname = "" '''
 
 
 countData = [] # Global list to store all the station information 
 
+####################################
+# Multi Hour Peak Range Validation #
+####################################
+def peakRangeValid(peak_start, peak_end):
+    global startMeridiem
+    global endMeridiem
+    global peakStartLabel
+    global peakEndLabel
+    global peakLabel
+    validInput = True
+    
+    if peak_start > 12 and peak_start <= 24:
+        peakStartLabel = peak_start - 12
+        startMeridiem = "PM"
+    elif peak_start >= 0:
+        peakStartLabel = peak_start
+        startMeridiem = "AM"
+    else:
+        validInput = False
+        
+
+    if peak_end > 12 and peak_start <=24:
+        peakEndLabel = peak_end - 12
+        endMeridiem =  "PM"
+    elif peak_start >= 0:
+        peakEndLabel = peak_end
+        endMeridiem = "AM"
+    else:
+        validInput = False
+
+    if startMeridiem == endMeridiem:
+        peakLabel = startMeridiem + "_" + str(peakStartLabel) + "to" + str(peakEndLabel)
+    else:
+        peakLabel = startMeridiem + "_" + str(peakStartLabel) + "to" + endMeridiem + "_" + str(peakEndLabel)
+
+    return validInput
+    
 
 ################################
 #  checks the report type and  #
@@ -95,8 +136,8 @@ def processCount(countPdf):
 
     getAllCountData(countPdf)
     
-    stationData.extend([(station),"Date", "Road Name", "From", "To", "Municipality", "Year", "Northing", "Easting",
-                        (volumeList[0]), (volumeList[1]), (pmPeakList[0]), (pmPeakList[1]),
+    stationData.extend([(station),(date), (roadName), (fromName), (toName), (municipality), (year), "Northing", "Easting",
+                        (volumeList[0]), (volumeList[1]), (totalPeakList[0]), (totalPeakList[1]),
                         "Sp85_1", "Sp85_2", (directionList[0]),(directionList[1])]) 
 
     return stationData
@@ -121,8 +162,8 @@ def stationToExcel(countData):
     worksheet.write('I1', 'Easting', bold)
     worksheet.write('J1', 'AADT_1', bold)
     worksheet.write('K1', 'AADT_2', bold)
-    worksheet.write('L1', 'PM_45_1', bold)
-    worksheet.write('M1', 'PM_45_2', bold)
+    worksheet.write('L1', peakLabel + '_1', bold)
+    worksheet.write('M1', peakLabel + '_2', bold)
     worksheet.write('N1', 'Sp85_1', bold)
     worksheet.write('O1', 'Sp85_2', bold)
     worksheet.write('P1', 'Dir_1', bold)
@@ -158,12 +199,20 @@ def stationToExcel(countData):
 
 def getAllCountData(countPdf):
     global station
+    global date
+    global year
+    global roadName
+    global fromName
+    global toName
+    global municipality
     global directionList
     global volumeList
-    global pmPeakList
+    global totalPeakList  
+
     directionList = []
     volumeList = []    
-    pmPeakList = []
+    totalPeakList = []
+    
     pdf=pdfquery.PDFQuery(countPdf)
     for page in range(0,(reportType(countPdf))): #iterates through each page of the pdf report to get required data        
         pdf=pdfquery.PDFQuery(countPdf)
@@ -174,6 +223,37 @@ def getAllCountData(countPdf):
             #############
             station = pdf.pq('LTTextLineHorizontal:in_bbox("36.0, 580.368, 186.0, 610.368")').text() #x, y cords in points of the text we want
             station = station[-6:] #text line includes "station:" so we take just the last 6 chaaracters of the string
+
+            #############
+            # Date/year #
+            #############
+            date = pdf.pq('LTTextLineHorizontal:in_bbox("35.999, 517.736, 160.999, 529.736")').text()
+            date = date[-10:] #takes last 10 characters to create the date string
+            year = date[-4:]
+
+            #############
+            # Road Name #
+            #############
+            roadName = pdf.pq('LTTextLineHorizontal:in_bbox("152.999, 547.496, 302.999, 559.496")').text()
+            roadName = roadName[11:] #removes first 11 characters making up the label and returns the rest
+
+            ############
+            #   From   #
+            ############
+            fromName = pdf.pq('LTTextLineHorizontal:in_bbox("296.999, 547.496, 440.999, 559.496")').text()
+            fromName = fromName[6:]
+
+            ############
+            #    To    #
+            ############
+            toName = pdf.pq('LTTextLineHorizontal:in_bbox("486, 547.496, 686, 559.496")').text()
+            toName = toName[4:-7]
+
+            ################
+            # Municipality #
+            ################
+            municipality = pdf.pq('LTTextLineHorizontal:in_bbox("614, 537, 815, 549")').text()
+            municipality = municipality.replace(":", " OF")
 
             #############
             # Driection #
@@ -190,25 +270,60 @@ def getAllCountData(countPdf):
                 direction2 = "Check PDF"
             directionList.extend((direction1[0], direction2))
             
-            #########
-            #PM Peak#
-            #########          
-            pmPeak4_5 = pdf.pq('LTTextLineHorizontal:in_bbox("475.0, 137.0, 496.0, 504.0")').text() #this has all values in the column (daily counts and the avg)
-            pmPeakListTMP = pmPeak4_5.split()
-            pmPeakList.extend((pmPeakListTMP[-1:])) #only adds the final number from the column which is the avg, ignoring the daily counts
+            ########
+            # Peak #
+            ########
 
+            peakTotal = 0
+            left_corner = 98.0
+            bottom_corner = 120.0
+            right_corner = 121.5
+            top_corner =  440.0
+            columnWidth = 23.5
+
+            for hour in range(peak_start, peak_end):
+
+                peak = pdf.pq('LTTextLineHorizontal:in_bbox("%s, %s, %s, %s")' % ((left_corner + (23.5 * peak_start)), bottom_corner, (right_corner+(23.5 * (peak_start))), top_corner)).text()
+                peakList = peak.split()
+                peakTotal += int(peakList.pop(-1))
+                left_corner += columnWidth
+                right_corner += columnWidth
+
+            totalPeakList.append(peakTotal)    
+            
             ##############
             #    AADT    #
             ##############
             AADT = pdf.pq('LTTextLineHorizontal:in_bbox("658.38, 67.428, 808, 97.428")').text()#no need to split as with pmPeak and others as only the value we want is supplied
             volumeList.append(AADT) 
         else:
-            #########
+            ########
+            # Peak #
+            ########
+           
+            peakTotal = 0
+            #starting position of the hourly columns
+            left_corner = 98.0
+            bottom_corner = 120.0
+            right_corner = 121.5
+            top_corner =  440.0
+            columnWidth = 23.5 # spacing between the hourly columns
+            
+            for hour in range(peak_start, peak_end):#takes the user defined input range and adds the hourl averages together
+
+                peak = pdf.pq('LTTextLineHorizontal:in_bbox("%s, %s, %s, %s")' % ((left_corner + (23.5 * peak_start)), bottom_corner, (right_corner+(23.5 * (peak_start))), top_corner)).text()
+                peakList = peak.split()
+                peakTotal += int(peakList.pop(-1))
+                left_corner += columnWidth
+                right_corner += columnWidth
+
+            totalPeakList.append(peakTotal)
+            '''#########
             #PM Peak#
             #########
             pmPeak4_5 = pdf.pq('LTTextLineHorizontal:in_bbox("475.0, 137.0, 496.0, 504.0")').text() #this has all values in the column (daily counts and the avg)
             pmPeakListTMP = pmPeak4_5.split()
-            pmPeakList.extend((pmPeakListTMP[-1:])) #only adds the final number from the column which is the avg, ignoring the daily counts
+            pmPeakList.extend((pmPeakListTMP[-1:])) #only adds the final number from the column which is the avg, ignoring the daily counts'''
 
             ##############
             #    AADT    #
@@ -370,13 +485,16 @@ def getPMPeak(countPdf):
 # Main loop #
 #############
 
+if peakRangeValid(peak_start, peak_end) == False:
+    print "Invalid hour or range"
+else:
 
-for countPdf in pdfFileList:
-    print "Reading " + countPdf
-    count_time = time.time()
-    stationDataScrape(countPdf)
-    print "Finished " + countPdf + " in " + str(time.time() - count_time)
-stationToExcel(countData) #sends countData to excel for format
-os.startfile((str(os.curdir)[:-1]) + workbookName + ".xlsx") #opens output file
+    for countPdf in pdfFileList:
+        print "Reading " + countPdf
+        count_time = time.time()
+        stationDataScrape(countPdf)
+        print "Finished " + countPdf + " in " + str(time.time() - count_time)
+    stationToExcel(countData) #sends countData to excel for format
+    os.startfile((str(os.curdir)[:-1]) + workbookName + ".xlsx") #opens output file
 
 print "Completed in", time.time() - start_time
