@@ -12,10 +12,10 @@ pdf=pdfquery.PDFQuery("1102.pdf")
 pdf.load(1)
 print pdf.tree
 pdf.tree.write("test2.xml", pretty_print=True, encoding="utf-8")
-left_corner = 72#98.0
-bottom_corner = 120.0
+left_corner = 96#98.0
+bottom_corner = 137.467#120.0
 right_corner = 98.5#121.5
-top_corner =  440.0
+top_corner =  148.527#440.0
 columnWidth = 23.5
 
 
@@ -53,7 +53,7 @@ if validInput == True:
 
     for hour in range(0,24):#(peak_start, peak_end):
 
-        peak = pdf.pq('LTTextLineHorizontal:in_bbox("%s, %s, %s, %s")' % ((left_corner + (23.5 * peak_start)), bottom_corner, (right_corner+(23.5 * (peak_start))), top_corner)).text()
+        peak = pdf.pq('LTTextLineHorizontal:overlaps_bbox("%s, %s, %s, %s")' % ((left_corner + (23.5 * peak_start)), bottom_corner, (right_corner+(23.5 * (peak_start))), top_corner)).text()
         peakList = peak.split()
         print peakList
         print peakList[-1:]
