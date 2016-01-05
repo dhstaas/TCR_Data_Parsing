@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en-us">
+  <head>
+    <meta charset="UTF-8">
+    <title>TCR data parser by dhstaas</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" type="text/css" href="stylesheets/normalize.css" media="screen">
+    <link href='https://fonts.googleapis.com/css?family=Open+Sans:400,700' rel='stylesheet' type='text/css'>
+    <link rel="stylesheet" type="text/css" href="stylesheets/stylesheet.css" media="screen">
+    <link rel="stylesheet" type="text/css" href="stylesheets/github-light.css" media="screen">
+  </head>
+  <body>
+    <section class="page-header">
+      <h1 class="project-name">TCR data parser</h1>
+      <h2 class="project-tagline">Processing of Traffic Count Editor (TCE)  pdf reports using Python 2.7 </h2>
+      <a href="https://github.com/dhstaas/TCR_Data_Parsing_27" class="btn">View on GitHub</a>
+      <a href="https://github.com/dhstaas/TCR_Data_Parsing_27/zipball/master" class="btn">Download .zip</a>
+      <a href="https://github.com/dhstaas/TCR_Data_Parsing_27/tarball/master" class="btn">Download .tar.gz</a>
+    </section>
+
+    <section class="main-content">
+      <h1>
+<a id="overview" class="anchor" href="#overview" aria-hidden="true"><span class="octicon octicon-link"></span></a>Overview</h1>
+
+<p>The TCR data parser takes data from PDF Traffic Count Reports and exports key data points into an excel format, eliminating the need to manually transpose values.</p>
+
+<h3>
+<a id="traffic-counts" class="anchor" href="#traffic-counts" aria-hidden="true"><span class="octicon octicon-link"></span></a>Traffic Counts</h3>
+
+<p>Many New York State Metropolitan Planning Organizations perform traffic counts and use the data to assess transportation needs, measure system performance, assist with road planning and design, and prioritize project funding.  Data is also utilized by businesses and the general public.  </p>
+
+<p>NYSDOT uses and provides a custom developed software called Traffic Count Editor (TCE) to facilitate the traffic count data quality control process.  The TCE software and configuration files are available on the <a href="https://www.dot.ny.gov/highway-data-services">NYSDOT Highway Data Services Bureau website</a> under software.</p>
+
+<h3>
+<a id="the-problem" class="anchor" href="#the-problem" aria-hidden="true"><span class="octicon octicon-link"></span></a>The Problem</h3>
+
+<p>The software produces Traffic Count Reports in a standard format, but the reports cannot be exported into any format and must instead be printed.  To supply and publish the data, reports are typically "printed to pdf" to save the report as a pdf.  There is no way to directly export any of the commonly sought after fields (AADT, Average for a particular hour) in the report, forcing those interested in the data to have to manually transpose the data from a pdf into a more usable format.  Many agencies that maintain traffic count databases have to manually extract data from hundreds of pdfs each year.</p>
+
+<h3>
+<a id="features" class="anchor" href="#features" aria-hidden="true"><span class="octicon octicon-link"></span></a>Features</h3>
+
+<p>The program creates an Excel workbook and then populates it with the following information taken from the pdf reports:</p>
+
+<pre><code>Station, Date, Road_Name, From, To, Municipality, Year, AADT_1, AADT_2, User defined Peak Hour(s)_1, User defined Peak Hour(s)_2, Dir_1, Dir_2
+</code></pre>
+
+<h3>
+<a id="requirements" class="anchor" href="#requirements" aria-hidden="true"><span class="octicon octicon-link"></span></a>Requirements</h3>
+
+<p>The program is written for python 2.7.x (not 3) and requires <a href="https://github.com/jmcnamara/XlsxWriter">XlsxWriter</a> and <a href="https://github.com/jcushman/pdfquery">pdfquery</a> modules to be installed.</p>
+
+<p>Python 2.7 is included with most ArcGIS installations v 10.1 or greater.</p>
+
+<h3>
+<a id="installation" class="anchor" href="#installation" aria-hidden="true"><span class="octicon octicon-link"></span></a>Installation</h3>
+
+<p>Currently very rudimentary</p>
+
+<h4>
+<a id="if-you-have-arcgis-installed" class="anchor" href="#if-you-have-arcgis-installed" aria-hidden="true"><span class="octicon octicon-link"></span></a>If you have ArcGIS installed:</h4>
+
+<hr>
+
+<p>Install easy_install</p>
+
+<p>Save ez_setup.py from <a href="https://bootstrap.pypa.io/ez_setup.py">this link</a> to: </p>
+
+<pre><code>C:\Python27\ArcGIS10.x\Scripts
+</code></pre>
+
+<p>Navigate to C:\Python27\ArcGIS10.x\Scripts</p>
+
+<p>Hold Shift and Right click in the directory and select "Open command window here"</p>
+
+<p>In the now open command prompt type:</p>
+
+<pre><code>python ez_setup.py
+</code></pre>
+
+<p>Hit enter</p>
+
+<p>Once installed type the following into the command prompt:</p>
+
+<pre><code>easy_install XlsxWriter
+</code></pre>
+
+<p>Hit enter</p>
+
+<p>Once installed type the following into the command prompt:</p>
+
+<pre><code>easy_install pdfquery
+</code></pre>
+
+<p>Hit enter</p>
+
+<h4>
+<a id="if-you-have-installed-python-27x-directly-use-easy_install-to-install-the-required-modules-as-described-above" class="anchor" href="#if-you-have-installed-python-27x-directly-use-easy_install-to-install-the-required-modules-as-described-above" aria-hidden="true"><span class="octicon octicon-link"></span></a>If you have installed python 2.7.x directly, use easy_install to install the required modules as described above</h4>
+
+<pre><code>easy_install XlsxWriter
+</code></pre>
+
+<p>and</p>
+
+<pre><code>easy_install pdfquery
+</code></pre>
+
+<h3>
+<a id="running-the-program" class="anchor" href="#running-the-program" aria-hidden="true"><span class="octicon octicon-link"></span></a>Running the program</h3>
+
+<p>After installing all the required components, download the <a href="https://github.com/dhstaas/TCR_Data_Parsing_27/pdf_read.pdf">pdf_read.py</a> program and save to wherever you want</p>
+
+<p>You can run the script through the python editor, IDLE, which will also allow you to paste the count directory instead of typing it out with the added bonus of seeing the source code:</p>
+
+<pre><code>Start -&gt; All Programs -&gt; ArcGIS -&gt; Python 2.7 -&gt; IDLE(Python GUI)
+Once in IDLE select File-&gt; Open and navigate to the pdf_read.py file
+In the new window with the source code select Run -&gt; Run Module
+</code></pre>
+
+<p>You should also  be able to run the script by double clicking on it but you will have to type in the directory rather than being able to paste it. </p>
+
+<p>The program will prompt you for the directory where your counts are stored (eg. S:\2015 Count Data\PDF Reports\Volume)</p>
+
+<p>You can then specify what hourly range to extract the average weekday hourly count from.</p>
+
+<p><strong>Disclaimer: This feature has not been perfected and may not work for all hourly ranges as expected.</strong></p>
+
+<p>It will then prompt for the name of the Excel file you want to create (eg. 2015_AADT_Report) and begin to read the count reports.
+Once completed the program will save an Excel workbook to the count directory and then open the file.</p>
+
+<h3>
+<a id="authors-and-contributors" class="anchor" href="#authors-and-contributors" aria-hidden="true"><span class="octicon octicon-link"></span></a>Authors and Contributors</h3>
+
+<p>Created by David Staas (<a href="https://github.com/dhstaas" class="user-mention">@dhstaas</a>)</p>
+
+      <footer class="site-footer">
+        <span class="site-footer-owner"><a href="https://github.com/dhstaas/TCR_Data_Parsing_27">TCR data parser</a> is maintained by <a href="https://github.com/dhstaas">dhstaas</a>.</span>
+
+        <span class="site-footer-credits">This page was generated by <a href="https://pages.github.com">GitHub Pages</a> using the <a href="https://github.com/jasonlong/cayman-theme">Cayman theme</a> by <a href="https://twitter.com/jasonlong">Jason Long</a>.</span>
+      </footer>
+
+    </section>
+
+  
+  </body>
+</html>
