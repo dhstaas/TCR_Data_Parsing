@@ -16,8 +16,8 @@ import time #needed to audit
 # Establish a working environment #
 ###################################
 
-#countDirectory = raw_input("Enter the directory where pdf versions of the Traffic Count Hourly Reports are located: ")
-countDirectory = r"C:\Users\dsta\Documents\GitHub\TCR_Data_Parsing_27\Demo Counts\typical vol" #can set static directory for testing
+countDirectory = raw_input("Enter the directory where pdf versions of the Traffic Count Hourly Reports are located: ")
+#countDirectory = r"C:\Users\dsta\Documents\GitHub\TCR_Data_Parsing_27\Demo Counts\typical vol" #can set static directory for testing
 os.chdir(countDirectory)
 pdfFileList=[fn for fn in os.listdir(countDirectory) if fn.endswith('.pdf')] #creates a list of pdf files in the directory
 peak_start = int(raw_input("Enter desired peak hour starting time (0 - 24 eg. enter 16 for 4PM):" ))
