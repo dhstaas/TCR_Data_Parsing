@@ -3,12 +3,13 @@ import os
 import xlsxwriter
 import time #needed to audit
 
+version = "0.9.1"
 #############################################################################
 #                                                                           #
 #                             TCRDataParser                                 #
 #                   Traffic Count Report Data Parser                        #
 #                                                                           #
-#                                 v1.0.0                                    #
+#                                 v0.9.1                                    #
 #                                                                           #
 #                               Created by                                  # 
 #                              David  Staas                                 #
@@ -19,7 +20,7 @@ import time #needed to audit
 ###################################
 # Establish a working environment #
 ###################################
-
+print "TCR Data Parser v" + version
 countDirectory = raw_input("Enter the directory where pdf versions of the Traffic Count Hourly Reports are located: ")
 #countDirectory = r"C:\Users\dsta\Documents\GitHub\TCR_Data_Parsing\Demo Counts\typical vol" #can set static directory for testing
 os.chdir(countDirectory)
@@ -32,7 +33,7 @@ start_time = time.time() #start audit timer
 
 
 countData = [] # Global list to store all the station information 
-
+manualEntry = "" #used to check if we want to manually process future counts
 ####################################
 # Multi Hour Peak Range Validation #
 ####################################
@@ -236,6 +237,7 @@ def getAllCountData(countPdf):
     global f3_f13
     global f4_f13
     global status
+    global manualEntry
 
     station = ""
     date = "Not included in avilable report data"
@@ -493,28 +495,33 @@ def getAllCountData(countPdf):
                 ##############
                 #    Peak    #
                 ##############
-                if directionCheck == 1 and peakCheck == 0: 
-                    print "Unable to extract peak hour range from this type of report"
-                    startManualPeak = raw_input("Would you like to input the peak hour data manually? (y or n): ")
-                    if startManualPeak == "n":
-                        totalPeakList = ["Format", "Issues"]
-                        peakCheck += 1
-                        
-                    if startManualPeak == "y":
-                        os.startfile((str(os.curdir)[:-1]) + countPdf)
-                        directionList.extend((direction1, direction2)) 
-                        for direction in directionList:
-                            hourlyUserInput = 0
-                            for hour in range(peak_start, peak_end):
-                                while True:
-                                    try:
-                                        hourlyUserInput += int(raw_input("Please enter the daily average for " + str(hour) + " to " + str(hour + 1) + " " + direction + ": "))
-                                    except ValueError:
-                                        print "Not a valid number, please try again"
-                                    else:
-                                        break
-                            totalPeakList.append(hourlyUserInput)
+                
+                if directionCheck == 1 and peakCheck == 0:
+                    if manualEntry != "y": #check to see if we already asked
+                        print "Unable to extract peak hour range from this type of report"
+                        startManualPeak = raw_input("Would you like to input the peak hour data manually? (y or n): ")
+                        if startManualPeak == "n":
+                            manualEntry = raw_input("Would you like to ignore errorrs of this type for all additional counts? (y or n): ")
+                            totalPeakList = ["Format", "Issues"]
                             peakCheck += 1
+                            
+                        if startManualPeak == "y":
+                            os.startfile((str(os.curdir)[:-1]) + countPdf)
+                            directionList.extend((direction1, direction2)) 
+                            for direction in directionList:
+                                hourlyUserInput = 0
+                                for hour in range(peak_start, peak_end):
+                                    while True:
+                                        try:
+                                            hourlyUserInput += int(raw_input("Please enter the daily average for " + str(hour) + " to " + str(hour + 1) + " " + direction + ": "))
+                                        except ValueError:
+                                            print "Not a valid number, please try again"
+                                        else:
+                                            break
+                                totalPeakList.append(hourlyUserInput)
+                                peakCheck += 1
+                    else:
+                        totalPeakList = ["Format", "Issues"]
                     
                 
 
@@ -684,7 +691,8 @@ else:
             print "Reading " + countPdf
             count_time = time.time()
             stationDataScrape(countPdf)
-            print "Finished " + countPdf + " in " + str(time.time() - count_time)
+            print "Finished " + countPdf + " in " + str(time.time() - count_time)[:4] + " seconds"
+            print ""
         except:
             print "issue with report ", countPdf, " Please ensure this is a TCE Generated Traffic Count Report"
             status = "issue with report ", countPdf
