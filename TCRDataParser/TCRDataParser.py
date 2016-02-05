@@ -388,14 +388,14 @@ def getAllCountData(countPdf):
                         direction2 = "Southbound"
                     elif direction1[0] == "Eastbound":
                         direction2 = "Westbound"
-                    elif direction1[0] = "Southbound":
+                    elif direction1[0] == "Southbound":
                         direction2 = "Northbound"
-                    elif direction1[0] = "Westbound":
+                    elif direction1[0] == "Westbound":
                         direction2 = "Eastbound"
                     else:
                         direction1 = "Check PDF"
                         direction2 = "Check PDF"
-                    
+                    direction1 = direction1[0]
                 except:
                     print "Issues reading direction data"
                     direction1 = "Check PDF"
@@ -545,7 +545,7 @@ def getAllCountData(countPdf):
                 ##############
                 #    AADT    #
                 ##############
-                AADT1 = pdf.pq('LTTextLineHorizontal:in_bbox("669, 115, 715, 128")').text()
+                AADT1 = pdf.pq('LTTextLineHorizontal:in_bbox("664, 115, 715, 128")').text()
                 AADT2 = pdf.pq('LTTextLineHorizontal:in_bbox("710, 115, 745, 128")').text()
                 #volumeList.extend([AADT1, AADT2])
                 specialVolPageCount += 1
@@ -770,7 +770,7 @@ def getAllCountData(countPdf):
                         totalPeakList = ["NA", "NA"]
         else:
             return "Not a supported count report"  
-    
+        
 
 #############################################
 #                    Tests                  #
@@ -801,7 +801,7 @@ else:
         except:
             print "issue with report ", countPdf, " Please ensure this is a TCE Generated Traffic Count Report"
             status = "issue with report ", countPdf
-            continue'''
+            continue
     stationToExcel(countData) #sends countData to excel for format
     os.startfile((str(os.curdir)[:-1]) + workbookName + ".xlsx") #opens output file
 
