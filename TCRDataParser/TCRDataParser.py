@@ -21,7 +21,7 @@ version = "0.9.1dev"
 #############################################################################
 
 countData = [] # Global list to store all the station information 
-manualEntry = "y" #used to check if we want to manually process future counts
+#manualEntry = "y" #used to check if we want to manually process future counts. Skipping for now due to multiprocessing
 
 
 ####################################
@@ -90,6 +90,7 @@ def stationToExcel(countData):
     worksheet.write('U1', 'Dir_1', bold)
     worksheet.write('V1', 'Dir_2', bold)
     worksheet.write('W1', 'TCR_Notes', bold)
+    worksheet.write('X1', 'File_Name', bold)
     
     worksheet.set_column(0, 0, 7)       #station
     worksheet.set_column(1, 1, 10)      #date
@@ -100,13 +101,13 @@ def stationToExcel(countData):
     worksheet.set_column(11, 12, (len(peakLabel) + 4)) #peak
     worksheet.set_column(13, 13, 11.3)  #Speed limit
     worksheet.set_column(14, 19, 8.3)   #Speed, class
-    worksheet.set_column(20, 22, 11.14) #Direction of travel, notes
+    worksheet.set_column(20, 23, 11.14) #Direction of travel, notes
 
     row =1
     col = 0
 
     #iterates through each station stored in countData and adds it to the workbook 
-    for station, date, RoadName, From, To, Municipality, Year, Northing, Easting, AADT_1, AADT_2, Peak_1, Peak_2, speedLimit ,Sp_85_1, Sp_85_2, F4_F13_1, F4_F13_2, F3_F13_1, F3_F13_2, Dir_1, Dir_2, status in (countData):
+    for station, date, RoadName, From, To, Municipality, Year, Northing, Easting, AADT_1, AADT_2, Peak_1, Peak_2, speedLimit ,Sp_85_1, Sp_85_2, F4_F13_1, F4_F13_2, F3_F13_1, F3_F13_2, Dir_1, Dir_2, status, fileName in (countData):
         worksheet.write(row, col,   station)
         worksheet.write(row, col + 1,   date)
         worksheet.write(row, col + 2,   RoadName)
@@ -130,6 +131,7 @@ def stationToExcel(countData):
         worksheet.write(row, col + 20,   Dir_1)
         worksheet.write(row, col + 21,   Dir_2)
         worksheet.write(row, col + 22,   status)
+        worksheet.write(row, col + 23,   fileName)
         row += 1
         
 #####################################
@@ -166,6 +168,7 @@ def getAllCountData(countPdf, peak_start, peak_end):
     f4_f13_1 = "NA"
     f4_f13_2 = "NA"
     status = ""
+    fileName = countPdf
     volPageCount = 0
     specialVolPageCount = 0
     directionCheck = 0
@@ -437,6 +440,11 @@ def getAllCountData(countPdf, peak_start, peak_end):
                     AADT2 = pdf.pq('LTTextLineHorizontal:in_bbox("710, 115, 745, 128")').text()
 
                     specialVolPageCount += 1
+					
+                    ##############
+                    #   Status   #
+                    ##############
+                    status = pageType 
 
                   
                 else:
@@ -456,43 +464,6 @@ def getAllCountData(countPdf, peak_start, peak_end):
                         else:
                             direction1 = "Check PDF"
                             direction2 = "Check PDF"
-
-                    
-                    ##############
-                    #    Peak    #
-                    ##############
-                    
-                    if directionCheck == 1 and peakCheck == 0:
-                        if manualEntry != "y": #check to see if we already asked
-                            print "Unable to extract peak hour range from this type of report"
-                            startManualPeak = raw_input("Would you like to input the peak hour data manually? (y or n): ")
-                            if startManualPeak == "n":
-                                manualEntry = raw_input("Would you like to ignore errorrs of this type for all additional counts? (y or n): ")
-                                totalPeak1 = "Unknown"
-                                totalPeak2 = "Unknown"
-                                peakCheck += 1
-                                
-                            if startManualPeak == "y":
-                                os.startfile((str(os.curdir)[:-1]) + countPdf)
-                                directionList.extend((direction1, direction2)) 
-                                for direction in directionList:
-                                    hourlyUserInput = 0
-                                    for hour in range(peak_start, peak_end):
-                                        while True:
-                                            try:
-                                                hourlyUserInput += int(raw_input("Please enter the daily average for " + str(hour) + " to " + str(hour + 1) + " " + direction + ": "))
-                                            except ValueError:
-                                                print "Not a valid number, please try again"
-                                            else:
-                                                break
-                                    totalPeakList.append(hourlyUserInput)
-                                    peakCheck += 1
-                                totalPeak1 = totalPeakList[0]
-                                totalPeak2 = totalPeakList[1]
-                        else:
-                            totalPeakList = ["Format", "Issues"]
-                         
-
 
     #################################################
     #                    CLASS                      #
@@ -665,7 +636,7 @@ def getAllCountData(countPdf, peak_start, peak_end):
     #create a list of the outputs generated for the loaded pdf
     stationData = [(station),(date), (roadName), (fromName), (toName), (municipality), (year), "", "",
                             (AADT1), (AADT2), (totalPeak1), (totalPeak2), (speedLimit),
-                            (speed85th1), (speed85th2),(f4_f13_1), (f4_f13_2), (f3_f13_1), (f3_f13_2), (direction1),(direction2), (status)]
+                            (speed85th1), (speed85th2),(f4_f13_1), (f4_f13_2), (f3_f13_1), (f3_f13_2), (direction1),(direction2), (status), (fileName)]
         
     return stationData
 
@@ -713,13 +684,52 @@ if __name__ == '__main__':
         # a function (getAllcountData) and an iterable source to perform the function on (count list).
         # In multiprocessing each process is separate and is encapsulated in its own environment so utilizing a
         # global variable for peak hour start and stop will not work.
-        # Instead we can use itertools to combine and repeat the arguments for the countPdf list and create a single argument
+        # Instead we can use itertools to combine and repeat the arguments for the countPdf list and create a single argument containing all 3 arguments
         # With each iteration, the 3 arguments are then split apart via getAllCountData_star() and passed on to getAllCountData(pdf,start,end)
         
         pool = Pool(processes = cpu_count())
         countData = pool.map(getAllCountData_star, itertools.izip(pdfFileList, itertools.repeat(peak_start), itertools.repeat(peak_end)))
         pool.close()
-        pool.join()    
+        pool.join()
+	###################
+	#   Manual Entry  #
+	###################
+        manualCounts = []
+        for station in countData:
+            if station[22] == "3 Page Vol":
+                manualCounts.append(station[0])
+        print "There are", len(manualCounts), "files where TCR cannot automatically extract the peak hour data"
+        startManualPeak = raw_input("Would you like to input the peak hour data manually? (y or n): ")
+        if startManualPeak == "n":
+            totalPeak1 = "Unknown"
+            totalPeak2 = "Unknown"
+                       
+        if startManualPeak == "y":
+            for station in countData:
+                directionList = []
+                totalPeakList = []
+                os.startfile((str(os.curdir)[:-1]) + (station[23]))
+                directionList.extend((station[20], station[21])) 
+                for direction in directionList:
+                    hourlyUserInput = 0
+                    for hour in range(peak_start, peak_end):
+                        while True:
+                            try:
+                                hourlyUserInput += int(raw_input("Please enter the daily average for station " + station[0] + " from " + str(hour) + " to " + str(hour + 1) + " " + direction + ": "))
+                            except ValueError:
+                                print "Not a valid number, please try again"
+                            else:
+                                break
+                    totalPeakList.append(hourlyUserInput)
+                station.pop(11)
+                station.insert(11, totalPeakList[0])
+                station.pop(12)
+                station.insert(12, totalPeakList[1])        
+        
+			
+	#########################
+	#   Format for Output   #
+	#########################
         stationToExcel(countData) #sends countData to excel for format
         os.startfile((str(os.curdir)[:-1]) + workbookName + ".xlsx") #opens output file      
     print "Completed in", round((time.time() - start_time)), " seconds"
