@@ -2,17 +2,17 @@
 import pdfquery
 import os
 import xlsxwriter
-from multiprocessing import Pool, cpu_count
+from multiprocessing import Pool, cpu_count, freeze_support
 import itertools
 import time #needed to audit
 
-version = "0.9.1dev"
+version = "0.9.2dev"
 #############################################################################
 #                                                                           #
 #                             TCRDataParser                                 #
 #                   Traffic Count Report Data Parser                        #
 #                                                                           #
-#                                 v0.9.1dev                                 #
+#                                 v0.9.2dev                                 #
 #                                                                           #
 #                               Created by                                  # 
 #                              David  Staas                                 #
@@ -21,7 +21,6 @@ version = "0.9.1dev"
 #############################################################################
 
 countData = [] # Global list to store all the station information 
-#manualEntry = "y" #used to check if we want to manually process future counts. Skipping for now due to multiprocessing
 
 
 ####################################
@@ -187,6 +186,117 @@ def getAllCountData(countPdf, peak_start, peak_end):
         pdf=pdfquery.PDFQuery(countPdf)
         pdf.load(page)
 
+        #check page size
+        pageSize = str(pdf.get_layout(0))[11:-10]
+        pageSizeList = pageSize.split(",")
+
+        if "792.000" in pageSizeList or "612.000" in pageSizeList:
+            print "8.5x11, I think"
+
+            #Standard Vol bbox locations
+            stationBox = [34, 560, 186, 612]
+            dateBox = [35, 516, 161, 530]
+            roadBox = [98, 547, 320, 560]
+            fromBox = [295, 546, 480, 560]
+            toBox = [484, 546, 686, 560]
+            muniBox = [635, 537, 750, 549]
+            dirBox = [35, 537, 250, 550]
+            AADTBox = [658.38, 67.428, 808, 97.428]
+            left_corner = 98.0
+            bottom_corner = 120.0
+            right_corner = 121.5
+            top_corner =  440.0
+            columnWidth = 23.5
+
+            #3 page vol bbox locations
+            specialStationBox = [101, 545, 145, 575]
+            specialDateBox = [102, 478, 140, 490]
+            specialRoadBox = [102, 528, 185, 540]
+            specialFromBox = [215, 528, 400, 540]
+            specialToBox = [400, 528, 600, 540]
+            specialMuniBox = [624, 515, 790, 527]
+            specialDirBox = [35, 537, 250, 550]
+            specialAADT1Box = [664, 115, 715, 128]
+            specialAADT2Box = [710, 115, 745, 128]
+			
+            #class bbox locations
+            classStationBox = [524, 737, 558, 752]
+            classDateBox = [336, 742, 370, 751]
+            classRoadBox = [183, 741, 330, 751]
+            classFromBox = [75, 722, 230, 731]
+            classToBox = [75, 716, 230, 725]
+            classDirBox = [368, 716, 558, 734]
+            classf4_f13Box = [412, 702, 501, 712]
+            classf3_f13Box = [412, 696, 501, 706]
+            
+            #speed bbox locations
+            speedStationBox = [106, 540, 135, 552]
+            speedDateBox = [375, 540, 460, 552]
+            speedRoadBox = [35, 532, 330, 543]
+            speedFromBox = [106, 523, 330, 535]
+            speedToBox = [106, 514, 330, 526]
+            speedMuniBox = [324, 514, 460, 526]
+            speedDirBox = [106, 505, 300, 517]
+            speed85thBox = [340, 130, 380, 160]
+            speedLimitBox = [375, 505, 400, 517]
+            
+            
+        elif "842.000" in pageSizeList or "595.000" in pageSizeList:
+            print "A4, I think"
+		    
+            #A4 Standard Vol bbox locations 
+            #subtract 17 from 8.5x11 y cords
+            stationBox = [34, 560, 186, 612] #works for A4 and 8.5
+            dateBox = [35, 499, 161, 513] #good
+            roadBox = [98, 530, 320, 543] #good
+            fromBox = [295, 529, 480, 543] #good
+            toBox = [484, 529, 686, 543] #good
+            muniBox = [635, 520, 750, 532] #good
+            dirBox = [35, 520, 250, 533] #good
+            AADTBox = [655, 50, 808, 80] #good
+            left_corner = 98.0
+            bottom_corner = 120.0
+            right_corner = 121.5
+            top_corner =  423.0
+            columnWidth = 23.5
+
+            #A4 3 page vol bbox locations
+            specialStationBox = [101, 545, 145, 575]
+            specialDateBox = [102, 478, 140, 490]
+            specialRoadBox = [102, 528, 185, 540]
+            specialFromBox = [215, 528, 400, 540]
+            specialToBox = [400, 528, 600, 540]
+            specialMuniBox = [624, 515, 790, 527]
+            specialDirBox = [35, 537, 250, 550]
+            specialAADT1Box = [664, 115, 715, 128]
+            specialAADT2Box = [710, 115, 745, 128]
+            
+            #A4 class bbox locations
+            classStationBox = [523, 785, 594, 802] #good
+            classDateBox = [336, 792, 370, 801] #good
+            classRoadBox = [183, 791, 330, 800] #good [183, 741, 330, 751[
+            classFromBox = [75, 772, 230, 781] #good[75, 722, 230, 731[
+            classToBox =  [75, 764, 230, 775] #good[75, 716, 230, 725[
+            classDirBox = [368, 774, 510, 785] #good[368, 716, 558, 734[
+            classf4_f13Box = [412, 752, 501, 762] #good
+            classf3_f13Box = [412, 746, 501, 756] #good
+            
+            #A4 speed bbox locations
+            speedStationBox = [106, 523, 135, 535] #good [106, 540, 135, 552[
+            speedDateBox = [375, 523, 460, 537] #good[375, 540, 460, 552 [375, 523, 460, 535]
+            speedRoadBox = [35, 514, 320, 527] #good[35, 532, 330, 543[
+            speedFromBox = [106, 505, 320, 518]#good[106, 523, 330, 535[
+            speedToBox = [106, 496, 320, 509] #good[106, 514, 330, 526[
+            speedMuniBox = [320, 496, 460, 509] #good[324, 514, 460, 526[
+            speedDirBox = [106, 487, 300, 501] #good[106, 505, 300, 517[
+            speed85thBox = [311, 105, 365, 139]
+            speedLimitBox = [375, 488, 460, 501]			
+			
+			
+        else:
+            status = "unsupported page size"  
+        
+
         #Search for unique strings to decide count type
         volHeading = pdf.pq('LTTextLineHorizontal:contains("Traffic Count Hourly Report")').text()[:2]
         classHeading = pdf.pq('LTTextLineHorizontal:contains("Classification Count Average Weekday Data Report")')
@@ -206,7 +316,7 @@ def getAllCountData(countPdf, peak_start, peak_end):
                     #  Station  #
                     #############
                     try:
-                        station = pdf.pq('LTTextLineHorizontal:in_bbox("34, 579, 186, 612")').text() #x, y cords in points of the text we want
+                        station = pdf.pq('LTTextLineHorizontal:in_bbox("%s")'%(','.join(str(cord) for cord in stationBox))).text() #x, y cords in points of the text we want
                         station = station[-6:] #text line includes "station:" so we take just the last 6 chaaracters of the string
                         
                     except:
@@ -217,7 +327,7 @@ def getAllCountData(countPdf, peak_start, peak_end):
                     # Date/year #
                     #############
                     try:
-                        date = pdf.pq('LTTextLineHorizontal:in_bbox("35, 516, 161, 530")').text()
+                        date = pdf.pq('LTTextLineHorizontal:in_bbox("%s")'%(','.join(str(cord) for cord in dateBox))).text()
                         date = date[-10:] #takes last 10 characters to create the date string
                         year = date[-4:]
                     except:
@@ -229,7 +339,7 @@ def getAllCountData(countPdf, peak_start, peak_end):
                     # Road Name #
                     #############
                     try:
-                        roadName = pdf.pq('LTTextLineHorizontal:in_bbox("98, 547, 320, 560")').text()
+                        roadName = pdf.pq('LTTextLineHorizontal:in_bbox("%s")'%(','.join(str(cord) for cord in roadBox))).text()
                         roadName = roadName.split("ROAD NAME: ")
                         if len(roadName) >= 2:
                             roadName = roadName[1]
@@ -243,7 +353,7 @@ def getAllCountData(countPdf, peak_start, peak_end):
                     #   From   #
                     ############
                     try:
-                        fromName = pdf.pq('LTTextLineHorizontal:in_bbox("295, 546, 480, 560")').text()
+                        fromName = pdf.pq('LTTextLineHorizontal:in_bbox("%s")'%(','.join(str(cord) for cord in fromBox))).text()
                         fromName = fromName[6:]
                     except:
                         print "Issues reading from name data"
@@ -253,7 +363,7 @@ def getAllCountData(countPdf, peak_start, peak_end):
                     #    To    #
                     ############
                     try:
-                        toName = pdf.pq('LTTextLineHorizontal:in_bbox("484, 546, 686, 560")').text()
+                        toName = pdf.pq('LTTextLineHorizontal:in_bbox("%s")'%(','.join(str(cord) for cord in toBox))).text()
                         toName = toName[4:-7]
                     except:
                         print "Issues reading to name data"
@@ -263,7 +373,7 @@ def getAllCountData(countPdf, peak_start, peak_end):
                     # Municipality #
                     ################
                     try:
-                        municipality = pdf.pq('LTTextLineHorizontal:in_bbox("635, 537, 750, 549")').text()
+                        municipality = pdf.pq('LTTextLineHorizontal:in_bbox("%s")'%(','.join(str(cord) for cord in muniBox))).text()
                         municipality = municipality.split()
                         if municipality[1] in {"TOWN:", "CITY:", "VILLAGE:"}:
                             municipality = municipality[1][:-1].title() + " of " + municipality[0].title()
@@ -277,7 +387,7 @@ def getAllCountData(countPdf, peak_start, peak_end):
                     # Driection #
                     #############
                     try:
-                        directionTMP = pdf.pq('LTTextLineHorizontal:in_bbox("35, 537, 250, 550")').text()
+                        directionTMP = pdf.pq('LTTextLineHorizontal:in_bbox("%s")'%(','.join(str(cord) for cord in dirBox))).text()
                         directionTMPList = directionTMP.split()
                         direction1 = directionTMPList[-1:]
                         if direction1[0] == "Northbound":
@@ -302,16 +412,11 @@ def getAllCountData(countPdf, peak_start, peak_end):
                     ########
 
                     peakTotal = 0
-                    left_corner = 98.0
-                    bottom_corner = 120.0
-                    right_corner = 121.5
-                    top_corner =  440.0
-                    columnWidth = 23.5
 
                     try:
                         for hour in range(peak_start, peak_end):
 
-                            peak = pdf.pq('LTTextLineHorizontal:in_bbox("%s, %s, %s, %s")' % ((left_corner + (23.5 * peak_start)), bottom_corner, (right_corner+(23.5 * (peak_start))), top_corner)).text()
+                            peak = pdf.pq('LTTextLineHorizontal:in_bbox("%s, %s, %s, %s")' % ((left_corner + (columnWidth * peak_start)), bottom_corner, (right_corner+(columnWidth * (peak_start))), top_corner)).text()
                             peakList = peak.split()
                             peakTotal += int(peakList.pop(-1))
                             left_corner += columnWidth
@@ -326,7 +431,7 @@ def getAllCountData(countPdf, peak_start, peak_end):
                     #    AADT    #
                     ##############
                     try:
-                        AADT1 = pdf.pq('LTTextLineHorizontal:in_bbox("658.38, 67.428, 808, 97.428")').text()#no need to split as with pmPeak and others as only the value we want is supplied
+                        AADT1 = pdf.pq('LTTextLineHorizontal:in_bbox("%s")'%(','.join(str(cord) for cord in AADTBox))).text()#no need to split as with pmPeak and others as only the value we want is supplied
                                           
                     except:
                         print "Issues reading AADT data"
@@ -340,12 +445,6 @@ def getAllCountData(countPdf, peak_start, peak_end):
                     ########
                    
                     peakTotal = 0
-                    #starting position of the hourly columns
-                    left_corner = 98.0
-                    bottom_corner = 120.0
-                    right_corner = 121.5
-                    top_corner =  440.0
-                    columnWidth = 23.5 # spacing between the hourly columns
                     
                     try:
                         for hour in range(peak_start, peak_end):#takes the user defined input range and adds the hourl averages together
@@ -365,7 +464,7 @@ def getAllCountData(countPdf, peak_start, peak_end):
                     #    AADT    #
                     ##############
                     try:                    
-                        AADT2 = pdf.pq('LTTextLineHorizontal:in_bbox("658.38, 67.428, 808, 97.428")').text()#no need to split as with pmPeak and others as only the value we want is supplied
+                        AADT2 = pdf.pq('LTTextLineHorizontal:in_bbox("%s")'%(','.join(str(cord) for cord in AADTBox))).text()#no need to split as with pmPeak and others as only the value we want is supplied
                     except:
                         print "Issues reading AADT data"
                         AADT2 ="Unknown"
@@ -385,35 +484,35 @@ def getAllCountData(countPdf, peak_start, peak_end):
                     ###############
                     #   Station   #
                     ###############
-                    station = pdf.pq('LTTextLineHorizontal:in_bbox("101, 545, 145, 575")').text()
+                    station = pdf.pq('LTTextLineHorizontal:in_bbox("%s")'%(','.join(str(cord) for cord in specialStationBox))).text()
 
                     #############
                     # Date/year #
                     #############
-                    date = pdf.pq('LTTextLineHorizontal:in_bbox("102, 478, 140, 490")').text()
+                    date = pdf.pq('LTTextLineHorizontal:in_bbox("%s")'%(','.join(str(cord) for cord in specialDateBox))).text()
                     year = date[-4:]
 
                     #############
                     # Road Name #
                     #############
-                    roadName = pdf.pq('LTTextLineHorizontal:in_bbox("102, 528, 185, 540")').text()
+                    roadName = pdf.pq('LTTextLineHorizontal:in_bbox("%s")'%(','.join(str(cord) for cord in specialRoadBox))).text()
 
                     ############
                     #   From   #
                     ############
-                    fromName = pdf.pq('LTTextLineHorizontal:in_bbox("215, 528, 400, 540")').text()
+                    fromName = pdf.pq('LTTextLineHorizontal:in_bbox("%s")'%(','.join(str(cord) for cord in specialFromBox))).text()
                     fromName = fromName[6:]
 
                     ############
                     #    To    #
                     ############
-                    toName = pdf.pq('LTTextLineHorizontal:in_bbox("400, 528, 600, 540")').text()
+                    toName = pdf.pq('LTTextLineHorizontal:in_bbox("%s")'%(','.join(str(cord) for cord in specialToBox))).text()
                     toName = toName[4:]
 
                     ################
                     # Municipality #
                     ################
-                    municipality = pdf.pq('LTTextLineHorizontal:in_bbox("624, 515, 790, 527")').text()
+                    municipality = pdf.pq('LTTextLineHorizontal:in_bbox("%s")'%(','.join(str(cord) for cord in specialMuniBox))).text()
                     municipality = municipality.rsplit("-")
                     municipality = municipality[1] + " of " +municipality[0]
                  
@@ -436,8 +535,8 @@ def getAllCountData(countPdf, peak_start, peak_end):
                     ##############
                     #    AADT    #
                     ##############
-                    AADT1 = pdf.pq('LTTextLineHorizontal:in_bbox("664, 115, 715, 128")').text()
-                    AADT2 = pdf.pq('LTTextLineHorizontal:in_bbox("710, 115, 745, 128")').text()
+                    AADT1 = pdf.pq('LTTextLineHorizontal:in_bbox("%s")'%(','.join(str(cord) for cord in specialAADT1Box))).text()
+                    AADT2 = pdf.pq('LTTextLineHorizontal:in_bbox("%s")'%(','.join(str(cord) for cord in specialAADT2Box))).text()
 
                     specialVolPageCount += 1
 					
@@ -475,7 +574,7 @@ def getAllCountData(countPdf, peak_start, peak_end):
                     ####################
                     # % Heavy vehicles #
                     ####################
-                    f4_f13 = pdf.pq('LTTextLineHorizontal:in_bbox("412, 702, 501, 712")').text()
+                    f4_f13 = pdf.pq('LTTextLineHorizontal:in_bbox("%s")'%(','.join(str(cord) for cord in classf4_f13Box))).text()
                     f4_f13 = f4_f13.replace("%", "")
                     f4_f13 = f4_f13.split()
                     if len(f4_f13) == 2:
@@ -488,7 +587,7 @@ def getAllCountData(countPdf, peak_start, peak_end):
                     #######################
                     # % Trucks and busses #
                     #######################
-                    f3_f13 = pdf.pq('LTTextLineHorizontal:in_bbox("412, 696, 501, 706")').text()
+                    f3_f13 = pdf.pq('LTTextLineHorizontal:in_bbox("%s")'%(','.join(str(cord) for cord in classf3_f13Box))).text()
                     f3_f13 = f3_f13.replace("%", "")
                     f3_f13 = f3_f13.split()
                     if len(f3_f13) == 2:
@@ -506,35 +605,35 @@ def getAllCountData(countPdf, peak_start, peak_end):
                         ###########
                         # station #
                         ###########
-                        station = pdf.pq('LTTextLineHorizontal:in_bbox("524, 737, 558, 752")').text()
+                        station = pdf.pq('LTTextLineHorizontal:in_bbox("%s")'%(','.join(str(cord) for cord in classStationBox))).text()
                         station = station[-6:] #text line includes "station:" so we take just the last 6 chaaracters of the string
                         
                         ###########
                         #   Year  #
                         ###########
-                        year = pdf.pq('LTTextLineHorizontal:in_bbox("336, 742, 370, 751")').text()
+                        year = pdf.pq('LTTextLineHorizontal:in_bbox("%s")'%(','.join(str(cord) for cord in classDateBox))).text()
                         year = year[-4:]
 
                         #############
                         # Road Name #
                         #############
-                        roadName = pdf.pq('LTTextLineHorizontal:in_bbox("183, 741, 330, 751")').text()
-                        roadName = roadName[11:]
-
+                        roadName = roadName = pdf.pq('LTTextLineHorizontal:in_bbox("%s")'%(','.join(str(cord) for cord in classRoadBox))).text()
+                        roadName = roadname[11:]
+						
                         #############
                         #  From     #
                         #############
-                        fromName = pdf.pq('LTTextLineHorizontal:in_bbox("75, 722, 230, 731")').text()
+                        fromName = pdf.pq('LTTextLineHorizontal:in_bbox("%s")'%(','.join(str(cord) for cord in classFromBox))).text()
 
                         #############
                         #    To     #
                         #############
-                        toName = pdf.pq('LTTextLineHorizontal:in_bbox("75, 716, 230, 725")').text()
+                        toName = pdf.pq('LTTextLineHorizontal:in_bbox("%s")'%(','.join(str(cord) for cord in classToBox))).text()
                        
                         #############
                         # Direction #
                         #############
-                        directionTMP = pdf.pq('LTTextLineHorizontal:in_bbox("368, 716, 558, 734")').text()
+                        directionTMP = pdf.pq('LTTextLineHorizontal:in_bbox("%s")'%(','.join(str(cord) for cord in classDirBox))).text()
                         directionList = directionTMP.split()
                         direction1 = directionList[0]
                         direction2 = directionList[1]
@@ -556,7 +655,7 @@ def getAllCountData(countPdf, peak_start, peak_end):
                 pageType = "speed"
                 print "Report type: ", pageType
                 if spdPageCount == 0: #since we can pull data from a single speed page, we only read the first page of that type
-                    speed85th = pdf.pq('LTTextLineHorizontal:in_bbox("340, 130, 380, 160")').text()
+                    speed85th = pdf.pq('LTTextLineHorizontal:in_bbox("%s")'%(','.join(str(cord) for cord in speed85thBox))).text()
                     speed85th = speed85th.split()
                     if len(speed85th) == 2:
                         speed85th1 = speed85th[0]
@@ -565,7 +664,7 @@ def getAllCountData(countPdf, peak_start, peak_end):
                         speed85th1 = speed85th[0]
                         speed85th2 = "NA"
                                     
-                    speedLimit = pdf.pq('LTTextLineHorizontal:in_bbox("375, 505, 400, 517")').text()
+                    speedLimit = pdf.pq('LTTextLineHorizontal:in_bbox("%s")'%(','.join(str(cord) for cord in speedLimitBox))).text()
                     spdPageCount +=1
 
                     ################################################
@@ -575,43 +674,43 @@ def getAllCountData(countPdf, peak_start, peak_end):
                         ###########
                         # station #
                         ###########
-                        station = pdf.pq('LTTextLineHorizontal:in_bbox("106, 540, 135, 552")').text()
+                        station = pdf.pq('LTTextLineHorizontal:in_bbox("%s")'%(','.join(str(cord) for cord in speedStationBox))).text()
                                             
                         #############
                         # Date/year #
                         #############
-                        date = pdf.pq('LTTextLineHorizontal:in_bbox("375, 540, 460, 552")').text()
+                        date = pdf.pq('LTTextLineHorizontal:in_bbox("%s")'%(','.join(str(cord) for cord in speedDateBox))).text()
                         date = date[4:14]
                         year = date[-4:]
 
                         #############
                         # Road Name #
                         #############
-                        roadName = pdf.pq('LTTextLineHorizontal:in_bbox("35, 532, 330, 543")').text()
+                        roadName = pdf.pq('LTTextLineHorizontal:in_bbox("%s")'%(','.join(str(cord) for cord in speedRoadBox))).text()
                         roadName = roadName.split("Road name: ")
                         roadName = roadName[1]
 
                         #############
                         #  From     #
                         #############
-                        fromName = pdf.pq('LTTextLineHorizontal:in_bbox("106, 523, 330, 535")').text()
+                        fromName = pdf.pq('LTTextLineHorizontal:in_bbox("%s")'%(','.join(str(cord) for cord in speedFromBox))).text()
 
                         #############
                         #    To     #
                         #############
-                        toName = pdf.pq('LTTextLineHorizontal:in_bbox("106, 514, 330, 526")').text()
+                        toName = pdf.pq('LTTextLineHorizontal:in_bbox("%s")'%(','.join(str(cord) for cord in speedToBox))).text()
 
                         ################
                         # Municipality #
                         ################
-                        municipality = pdf.pq('LTTextLineHorizontal:in_bbox("324, 514, 460, 526")').text()
-                        municipality = municipality.split()
-                        municipality = municipality[0][:-1].title() + " of " + municipality[1].title() 
+                        municipality = pdf.pq('LTTextLineHorizontal:in_bbox("%s")'%(','.join(str(cord) for cord in speedMuniBox))).text()
+                        municipality = municipality.title()
+                        municipality = municipality.replace(":", " of")
                         
                         #############
                         # Direction #
                         #############
-                        direction1 = pdf.pq('LTTextLineHorizontal:in_bbox("106, 505, 300, 517")').text()
+                        direction1 = pdf.pq('LTTextLineHorizontal:in_bbox("%s")'%(','.join(str(cord) for cord in speedDirBox))).text()
                         if direction1 == "North":
                             direction1 = direction1 + "bound"
                             direction2 = "Southbound"
@@ -686,7 +785,7 @@ if __name__ == '__main__':
         # global variable for peak hour start and stop will not work.
         # Instead we can use itertools to combine and repeat the arguments for the countPdf list and create a single argument containing all 3 arguments
         # With each iteration, the 3 arguments are then split apart via getAllCountData_star() and passed on to getAllCountData(pdf,start,end)
-        
+        freeze_support() #required to create a frozen exe
         pool = Pool(processes = cpu_count())
         countData = pool.map(getAllCountData_star, itertools.izip(pdfFileList, itertools.repeat(peak_start), itertools.repeat(peak_end)))
         pool.close()
@@ -698,33 +797,34 @@ if __name__ == '__main__':
         for station in countData:
             if station[22] == "3 Page Vol":
                 manualCounts.append(station[0])
-        print "There are", len(manualCounts), "files where TCR cannot automatically extract the peak hour data"
-        startManualPeak = raw_input("Would you like to input the peak hour data manually? (y or n): ")
-        if startManualPeak == "n":
-            totalPeak1 = "Unknown"
-            totalPeak2 = "Unknown"
-                       
-        if startManualPeak == "y":
-            for station in countData:
-                directionList = []
-                totalPeakList = []
-                os.startfile((str(os.curdir)[:-1]) + (station[23]))
-                directionList.extend((station[20], station[21])) 
-                for direction in directionList:
-                    hourlyUserInput = 0
-                    for hour in range(peak_start, peak_end):
-                        while True:
-                            try:
-                                hourlyUserInput += int(raw_input("Please enter the daily average for station " + station[0] + " from " + str(hour) + " to " + str(hour + 1) + " " + direction + ": "))
-                            except ValueError:
-                                print "Not a valid number, please try again"
-                            else:
-                                break
-                    totalPeakList.append(hourlyUserInput)
-                station.pop(11)
-                station.insert(11, totalPeakList[0])
-                station.pop(12)
-                station.insert(12, totalPeakList[1])        
+        if len(manualCounts) > 0:
+			print "There are", len(manualCounts), "files where TCR cannot automatically extract the peak hour data"
+			startManualPeak = raw_input("Would you like to input the peak hour data manually? (y or n): ")
+			if startManualPeak == "n":
+				totalPeak1 = "Unknown"
+				totalPeak2 = "Unknown"
+						   
+			if startManualPeak == "y":
+				for station in countData:
+					directionList = []
+					totalPeakList = []
+					os.startfile((str(os.curdir)[:-1]) + (station[23]))
+					directionList.extend((station[20], station[21])) 
+					for direction in directionList:
+						hourlyUserInput = 0
+						for hour in range(peak_start, peak_end):
+							while True:
+								try:
+									hourlyUserInput += int(raw_input("Please enter the daily average for station " + station[0] + " from " + str(hour) + " to " + str(hour + 1) + " " + direction + ": "))
+								except ValueError:
+									print "Not a valid number, please try again"
+								else:
+									break
+						totalPeakList.append(hourlyUserInput)
+					station.pop(11)
+					station.insert(11, totalPeakList[0])
+					station.pop(12)
+					station.insert(12, totalPeakList[1])        
         
 			
 	#########################
