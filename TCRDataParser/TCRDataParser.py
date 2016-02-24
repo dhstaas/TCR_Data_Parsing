@@ -1,18 +1,19 @@
 #!python2
 import pdfquery
 import os
+import sys
 import xlsxwriter
-from multiprocessing import Pool, cpu_count, freeze_support
+from multiprocessing import Pool, cpu_count, freeze_support, forking
 import itertools
 import time #needed to audit
 
-version = "0.9.2dev"
+
 #############################################################################
 #                                                                           #
 #                             TCRDataParser                                 #
 #                   Traffic Count Report Data Parser                        #
 #                                                                           #
-#                                 v0.9.2dev                                 #
+#                                 v0.9.3b                                   #
 #                                                                           #
 #                               Created by                                  # 
 #                              David  Staas                                 #
@@ -20,7 +21,65 @@ version = "0.9.2dev"
 #                                                                           #
 #############################################################################
 
-countData = [] # Global list to store all the station information 
+
+###################################
+### For multiprocessing support ###
+###################################
+if sys.platform.startswith('win'):
+    # First define a modified version of Popen.
+    class _Popen(forking.Popen):
+        def __init__(self, *args, **kw):
+            if hasattr(sys, 'frozen'):
+                # We have to set original _MEIPASS2 value from sys._MEIPASS
+                # to get --onefile mode working.
+                os.putenv('_MEIPASS2', sys._MEIPASS)
+            try:
+                super(_Popen, self).__init__(*args, **kw)
+            finally:
+                if hasattr(sys, 'frozen'):
+                    # On some platforms (e.g. AIX) 'os.unsetenv()' is not
+                    # available. In those cases we cannot delete the variable
+                    # but only set it to the empty string. The bootloader
+                    # can handle this case.
+                    if hasattr(os, 'unsetenv'):
+                        os.unsetenv('_MEIPASS2')
+                    else:
+                        os.putenv('_MEIPASS2', '')
+
+    # Second override 'Popen' class with our modified version.
+    forking.Popen = _Popen
+   
+####################
+# Est. working env #
+####################
+def startup():
+    global version
+    global countData
+    global pdfFileList
+    global fileListLen
+    global peak_start
+    global peak_end
+    global workbookName
+    global start_time
+    
+    
+    version = "0.9.2dev"
+    countData = [] # Global list to store all the station information
+
+    print "TCR Data Parser v" + version
+    print
+    countDirectory = raw_input("Enter the directory where pdf versions of the Traffic Count Hourly Reports are located: ")
+    #countDirectory = r"C:\Users\dsta\Documents\GitHub\TCR_Data_Parsing\Demo Counts\typical vol" #can set static directory for testing
+    os.chdir(countDirectory)
+    print
+    pdfFileList=[fn for fn in os.listdir(countDirectory) if fn.endswith('.pdf')] #creates a list of pdf files in the directory
+    fileListLen = len(pdfFileList)
+    peak_start = int(raw_input("Enter desired peak hour starting time (0 - 24 eg. enter 16 for 4PM):" ))
+    print
+    peak_end = int(raw_input("Enter desired peak hour ending time (0 - 24 eg. enter 17 for 5PM):" ))
+    print
+    workbookName = raw_input("Please enter the name of the Excel workbook to be generated: ") #establises output excel file
+    start_time = time.time() #start audit timer
 
 
 ####################################
@@ -191,8 +250,7 @@ def getAllCountData(countPdf, peak_start, peak_end):
         pageSizeList = pageSize.split(",")
 
         if "792.000" in pageSizeList or "612.000" in pageSizeList:
-            print "8.5x11, I think"
-
+            
             #Standard Vol bbox locations
             stationBox = [34, 560, 186, 612]
             dateBox = [35, 516, 161, 530]
@@ -242,8 +300,7 @@ def getAllCountData(countPdf, peak_start, peak_end):
             
             
         elif "842.000" in pageSizeList or "595.000" in pageSizeList:
-            print "A4, I think"
-		    
+            		    
             #A4 Standard Vol bbox locations 
             #subtract 17 from 8.5x11 y cords
             stationBox = [34, 560, 186, 612] #works for A4 and 8.5
@@ -750,23 +807,10 @@ def getAllCountData_star(flie_start_end):
 #############
 # Main loop #
 #############
+
 if __name__ == '__main__':
-
-    ####################
-    # Est. working env #
-    ####################
-
-    print "TCR Data Parser v" + version
-    print
-    countDirectory = raw_input("Enter the directory where pdf versions of the Traffic Count Hourly Reports are located: ")
-    #countDirectory = r"C:\Users\dsta\Documents\GitHub\TCR_Data_Parsing\Demo Counts\typical vol" #can set static directory for testing
-    os.chdir(countDirectory)
-    pdfFileList=[fn for fn in os.listdir(countDirectory) if fn.endswith('.pdf')] #creates a list of pdf files in the directory
-    fileListLen = len(pdfFileList)
-    peak_start = int(raw_input("Enter desired peak hour starting time (0 - 24 eg. enter 16 for 4PM):" ))
-    peak_end = int(raw_input("Enter desired peak hour ending time (0 - 24 eg. enter 17 for 5PM):" ))
-    workbookName = raw_input("Please enter the name of the Excel workbook to be generated: ") #establises output excel file
-    start_time = time.time() #start audit timer
+    freeze_support() #required to create a frozen exe
+    startup()
 
     ######################################
     # Ensure that range entered is valid #
@@ -785,7 +829,8 @@ if __name__ == '__main__':
         # global variable for peak hour start and stop will not work.
         # Instead we can use itertools to combine and repeat the arguments for the countPdf list and create a single argument containing all 3 arguments
         # With each iteration, the 3 arguments are then split apart via getAllCountData_star() and passed on to getAllCountData(pdf,start,end)
-        freeze_support() #required to create a frozen exe
+
+        
         pool = Pool(processes = cpu_count())
         countData = pool.map(getAllCountData_star, itertools.izip(pdfFileList, itertools.repeat(peak_start), itertools.repeat(peak_end)))
         pool.close()
@@ -796,37 +841,39 @@ if __name__ == '__main__':
         manualCounts = []
         for station in countData:
             if station[22] == "3 Page Vol":
-                manualCounts.append(station[0])
+                manualCounts.append(station)#appends the station data into manualCounts
         if len(manualCounts) > 0:
-			print "There are", len(manualCounts), "files where TCR cannot automatically extract the peak hour data"
-			startManualPeak = raw_input("Would you like to input the peak hour data manually? (y or n): ")
-			if startManualPeak == "n":
-				totalPeak1 = "Unknown"
-				totalPeak2 = "Unknown"
-						   
-			if startManualPeak == "y":
-				for station in countData:
-					directionList = []
-					totalPeakList = []
-					os.startfile((str(os.curdir)[:-1]) + (station[23]))
-					directionList.extend((station[20], station[21])) 
-					for direction in directionList:
-						hourlyUserInput = 0
-						for hour in range(peak_start, peak_end):
-							while True:
-								try:
-									hourlyUserInput += int(raw_input("Please enter the daily average for station " + station[0] + " from " + str(hour) + " to " + str(hour + 1) + " " + direction + ": "))
-								except ValueError:
-									print "Not a valid number, please try again"
-								else:
-									break
-						totalPeakList.append(hourlyUserInput)
-					station.pop(11)
-					station.insert(11, totalPeakList[0])
-					station.pop(12)
-					station.insert(12, totalPeakList[1])        
-        
-			
+            print "There are", len(manualCounts), "files where TCR cannot automatically extract the peak hour data"
+            startManualPeak = raw_input("Would you like to input the peak hour data manually? (y or n): ")
+            if startManualPeak == "n":
+                totalPeak1 = "User Declined"
+                totalPeak2 = "User Declined"
+                                       
+            if startManualPeak == "y":
+                countData = [station for station in countData if station[22] != "3 Page Vol"] #removing stations that need manual input
+                for station in manualCounts:
+                    directionList = [] #clearing lists so station data is not added together
+                    totalPeakList = []
+                    os.startfile((str(os.curdir)[:-1]) + (station[23])) #opens the pdf 
+                    directionList.extend((station[20], station[21])) 
+                    for direction in directionList:
+                            hourlyUserInput = 0
+                            for hour in range(peak_start, peak_end):
+                                    while True:
+                                            try:
+                                                hourlyUserInput += int(raw_input("Please enter the daily average for station " + station[0] + " from " + str(hour) + " to " + str(hour + 1) + " " + direction + ": "))
+                                            except ValueError:
+                                                print "Not a valid number, please try again"
+                                            else:
+                                                break
+                            totalPeakList.append(hourlyUserInput)
+                    station.pop(11)
+                    station.insert(11, totalPeakList[0])
+                    station.pop(12)
+                    station.insert(12, totalPeakList[1])
+                countData.extend(manualCounts)
+                countData.sort()
+                    			
 	#########################
 	#   Format for Output   #
 	#########################
