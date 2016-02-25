@@ -72,15 +72,10 @@ Running the program
 It is easiest to run this by downloading the compiled TCRDataParser.exe from the `releases page <https://github.com/dhstaas/TCR_Data_Parsing/releases>`__ but you may also run this as a python script if you have the required dependencies.
 
 To use, navigate to wherever you saved TCRDataParser.exe and then hold Shift and Right click in the folder (not the file itself) to select "Open command window here"
-![commandlineopen](https://cloud.githubusercontent.com/assets/15948070/12757817/9bfe0580-c9a7-11e5-98f8-c3133b02e7d0.jpg)
 
 With the command line open, type the name of the executable eg. "TCRDataParser.v0.9.3b.exe" without the quotes and then hit enter
-![image](https://cloud.githubusercontent.com/assets/15948070/12757900/f746de8a-c9a7-11e5-8567-4a6b370eb4b4.png)
 
 If you copy the directory of where your PDF count reports are located, you can right click and paste the instead of having to type out the directory
-
-![commandlinepaste](https://cloud.githubusercontent.com/assets/15948070/12758024/961ea98e-c9a8-11e5-9834-d7847cb80910.jpg)
-
 
 You can then specify what hourly range to extract the average weekday
 hourly count from.
