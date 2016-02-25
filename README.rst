@@ -42,99 +42,45 @@ following information taken from the pdf reports:
 
 ::
 
-    Station, Date, Road_Name, From, To, Municipality, Year, AADT_1, AADT_2, User defined Peak Hour(s)_1, User defined Peak Hour(s)_2, Dir_1, Dir_2
+    Station, Date, Road_Name, From, To, Municipality, Year, AADT, User defined Peak Hour(s), Speed limit, 85% Speed, % Class F4-F13, % Class F3-F13, Direction
 
 Requirements
 ~~~~~~~~~~~~
 
-The program is written for python 2.7.x (not 3) and requires
-`XlsxWriter <https://github.com/jmcnamara/XlsxWriter>`__ and
-`pdfquery <https://github.com/jcushman/pdfquery>`__ modules to be
-installed.
+8.5" x 11" -or- A4 PDF TCE reports
 
-Python 2.7 is included with most ArcGIS installations v 10.1 or greater.
 
 Installation
 ~~~~~~~~~~~~
 
-Currently very rudimentary ####If you have ArcGIS installed: \*\*\*
+The program is compiled to an executable on the releases page and can be run directly from any location
 
-Install easy\_install
 
-Save ez\_setup.py from `this
-link <https://bootstrap.pypa.io/ez_setup.py>`__ to:
+You can also run the source code if desired but you will need to install the following:
 
-::
+- Python 2.7.x (included with most ArcGIS installations v 10.1 or greater)
 
-    C:\Python27\ArcGIS10.x\Scripts
+*Modules*
 
-Navigate to
-C::raw-latex:`\Python`27:raw-latex:`\ArcGIS`10.x:raw-latex:`\Scripts`
+- `XlsxWriter <https://github.com/jmcnamara/XlsxWriter>`__ 
+- `pdfquery <https://github.com/jcushman/pdfquery>`__ 
 
-Hold Shift and Right click in the directory and select "Open command
-window here"
-
-In the now open command prompt type:
-
-::
-
-    python ez_setup.py
-
-Hit enter
-
-Once installed type the following into the command prompt:
-
-::
-
-    easy_install XlsxWriter
-
-Hit enter
-
-Once installed type the following into the command prompt:
-
-::
-
-    easy_install pdfquery
-
-Hit enter
-
-If you have installed python 2.7.x directly, use easy\_install to install the required modules as described above
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-::
-
-    easy_install XlsxWriter
-
-and
-
-::
-
-    easy_install pdfquery
 
 Running the program
 ~~~~~~~~~~~~~~~~~~~
 
-After installing all the required components, download the
-`pdf\_read.py <https://github.com/dhstaas/TCR_Data_Parsing_27/blob/master/pdf_read.py>`__
-program and save to wherever you want
+It is easiest to run this by downloading the compiled TCRDataParser.exe but you may also run this as a python script if you have the required dependencies.
 
-You can run the script through the python editor, IDLE, which will also
-allow you to paste the count directory instead of typing it out with the
-added bonus of seeing the source code:
+To use, navigate to wherever you saved TCRDataParser.exe and then hold Shift and Right click in the folder (not the file itself) to select "Open command window here"
+![commandlineopen](https://cloud.githubusercontent.com/assets/15948070/12757817/9bfe0580-c9a7-11e5-98f8-c3133b02e7d0.jpg)
 
-::
+With the command line open, type the name of the executable eg. "TCRDataParser.v0.9.3b.exe" without the quotes and then hit enter
+![image](https://cloud.githubusercontent.com/assets/15948070/12757900/f746de8a-c9a7-11e5-8567-4a6b370eb4b4.png)
 
-    Start -> All Programs -> ArcGIS -> Python 2.7 -> IDLE(Python GUI)
-    Once in IDLE select File-> Open and navigate to the pdf_read.py file
-    In the new window with the source code select Run -> Run Module
+If you copy the directory of where your PDF count reports are located, you can right click and paste the instead of having to type out the directory
 
-You should also be able to run the script by double clicking on it but
-you will have to type in the directory rather than being able to paste
-it.
+![commandlinepaste](https://cloud.githubusercontent.com/assets/15948070/12758024/961ea98e-c9a8-11e5-9834-d7847cb80910.jpg)
 
-The program will prompt you for the directory where your counts are
-stored (eg. S::raw-latex:`\2`015 Count
-Data:raw-latex:`\PDF `Reports:raw-latex:`\Volume`)
 
 You can then specify what hourly range to extract the average weekday
 hourly count from.
@@ -143,9 +89,9 @@ hourly count from.
 all hourly ranges as expected.**
 
 It will then prompt for the name of the Excel file you want to create
-(eg. 2015\_AADT\_Report) and begin to read the count reports. Once
-completed the program will save an Excel workbook to the count directory
-and then open the file.
+(eg. 2015\_AADT\_Report) and begin to read the count reports. 
+If there are any 3 page volume reports (older format), you will be asked if you want to manually input the peak hour data.
+Once completed the program will save an Excel workbook to the count directory and then open the file.
 
 Authors and Contributors
 ~~~~~~~~~~~~~~~~~~~~~~~~
