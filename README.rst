@@ -53,7 +53,7 @@ Requirements
 Installation
 ~~~~~~~~~~~~
 
-The program is compiled to an executable on the releases page and can be run directly from any location
+The program is compiled to an `executable <https://github.com/dhstaas/TCR_Data_Parsing/releases/download/0.9.3b/TCRDataParser.v0.9.3b.exe>`__ on the `releases page <https://github.com/dhstaas/TCR_Data_Parsing/releases>`__ and can be run directly from any location
 
 
 You can also run the source code if desired but you will need to install the following:
@@ -69,7 +69,7 @@ You can also run the source code if desired but you will need to install the fol
 Running the program
 ~~~~~~~~~~~~~~~~~~~
 
-It is easiest to run this by downloading the compiled TCRDataParser.exe but you may also run this as a python script if you have the required dependencies.
+It is easiest to run this by downloading the compiled TCRDataParser.exe from the `releases page <https://github.com/dhstaas/TCR_Data_Parsing/releases>`__ but you may also run this as a python script if you have the required dependencies.
 
 To use, navigate to wherever you saved TCRDataParser.exe and then hold Shift and Right click in the folder (not the file itself) to select "Open command window here"
 ![commandlineopen](https://cloud.githubusercontent.com/assets/15948070/12757817/9bfe0580-c9a7-11e5-98f8-c3133b02e7d0.jpg)
@@ -85,8 +85,8 @@ If you copy the directory of where your PDF count reports are located, you can r
 You can then specify what hourly range to extract the average weekday
 hourly count from.
 
-**Disclaimer: This feature has not been perfected and may not work for
-all hourly ranges as expected.**
+*Disclaimer: This feature has not been perfected and may not work for
+all hourly ranges as expected.*
 
 It will then prompt for the name of the Excel file you want to create
 (eg. 2015\_AADT\_Report) and begin to read the count reports. 
