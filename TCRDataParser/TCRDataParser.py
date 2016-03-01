@@ -13,7 +13,7 @@ import time #needed to audit
 #                             TCRDataParser                                 #
 #                   Traffic Count Report Data Parser                        #
 #                                                                           #
-#                                 v0.9.3b                                   #
+#                                 v0.9.4b                                   #
 #                                                                           #
 #                               Created by                                  # 
 #                              David  Staas                                 #
@@ -63,7 +63,7 @@ def startup():
     global start_time
     
     
-    version = "0.9.2dev"
+    version = "0.9.4b"
     countData = [] # Global list to store all the station information
 
     print "TCR Data Parser v" + version
@@ -139,16 +139,20 @@ def stationToExcel(countData):
     worksheet.write('L1', peakLabel + '_1', bold) #uses the peak range to label column
     worksheet.write('M1', peakLabel + '_2', bold)
     worksheet.write('N1', 'Speed_Limit', bold)
-    worksheet.write('O1', 'Sp85_1', bold)
-    worksheet.write('P1', 'Sp85_2', bold)
-    worksheet.write('Q1', 'F4_F13_1', bold)
-    worksheet.write('R1', 'F4_F13_2', bold)
-    worksheet.write('S1', 'F3_F13_1', bold)
-    worksheet.write('T1', 'F3_F13_2', bold)
-    worksheet.write('U1', 'Dir_1', bold)
-    worksheet.write('V1', 'Dir_2', bold)
-    worksheet.write('W1', 'TCR_Notes', bold)
-    worksheet.write('X1', 'File_Name', bold)
+    worksheet.write('O1', 'SpAvg_1', bold)
+    worksheet.write('P1', 'SpAvg_2', bold)
+    worksheet.write('Q1', 'Sp50_1', bold)
+    worksheet.write('R1', 'Sp50_2', bold)    
+    worksheet.write('S1', 'Sp85_1', bold)
+    worksheet.write('T1', 'Sp85_2', bold)
+    worksheet.write('U1', 'F4_F13_1', bold)
+    worksheet.write('V1', 'F4_F13_2', bold)
+    worksheet.write('W1', 'F3_F13_1', bold)
+    worksheet.write('X1', 'F3_F13_2', bold)
+    worksheet.write('Y1', 'Dir_1', bold)
+    worksheet.write('Z1', 'Dir_2', bold)
+    worksheet.write('AA1', 'TCR_Notes', bold)
+    worksheet.write('AB1', 'File_Name', bold)
     
     worksheet.set_column(0, 0, 7)       #station
     worksheet.set_column(1, 1, 10)      #date
@@ -165,7 +169,7 @@ def stationToExcel(countData):
     col = 0
 
     #iterates through each station stored in countData and adds it to the workbook 
-    for station, date, RoadName, From, To, Municipality, Year, Northing, Easting, AADT_1, AADT_2, Peak_1, Peak_2, speedLimit ,Sp_85_1, Sp_85_2, F4_F13_1, F4_F13_2, F3_F13_1, F3_F13_2, Dir_1, Dir_2, status, fileName in (countData):
+    for station, date, RoadName, From, To, Municipality, Year, Northing, Easting, AADT_1, AADT_2, Peak_1, Peak_2, speedLimit, SpAvg_1, SpAvg_2, Sp_50_1, Sp_50_2, Sp_85_1, Sp_85_2, F4_F13_1, F4_F13_2, F3_F13_1, F3_F13_2, Dir_1, Dir_2, status, fileName in (countData):
         worksheet.write(row, col,   station)
         worksheet.write(row, col + 1,   date)
         worksheet.write(row, col + 2,   RoadName)
@@ -180,16 +184,20 @@ def stationToExcel(countData):
         worksheet.write(row, col + 11,   Peak_1)
         worksheet.write(row, col + 12,   Peak_2)
         worksheet.write(row, col + 13,   speedLimit)
-        worksheet.write(row, col + 14,   Sp_85_1)
-        worksheet.write(row, col + 15,   Sp_85_2)
-        worksheet.write(row, col + 16,   F4_F13_1)
-        worksheet.write(row, col + 17,   F4_F13_2)
-        worksheet.write(row, col + 18,   F3_F13_1)
-        worksheet.write(row, col + 19,   F3_F13_2)
-        worksheet.write(row, col + 20,   Dir_1)
-        worksheet.write(row, col + 21,   Dir_2)
-        worksheet.write(row, col + 22,   status)
-        worksheet.write(row, col + 23,   fileName)
+        worksheet.write(row, col + 14,   SpAvg_1)
+        worksheet.write(row, col + 15,   SpAvg_2)
+        worksheet.write(row, col + 16,   Sp_50_1)
+        worksheet.write(row, col + 17,   Sp_50_2)
+        worksheet.write(row, col + 18,   Sp_85_1)
+        worksheet.write(row, col + 19,   Sp_85_2)
+        worksheet.write(row, col + 20,   F4_F13_1)
+        worksheet.write(row, col + 21,   F4_F13_2)
+        worksheet.write(row, col + 22,   F3_F13_1)
+        worksheet.write(row, col + 23,   F3_F13_2)
+        worksheet.write(row, col + 24,   Dir_1)
+        worksheet.write(row, col + 25,   Dir_2)
+        worksheet.write(row, col + 26,   status)
+        worksheet.write(row, col + 27,   fileName)
         row += 1
         
 #####################################
@@ -216,9 +224,15 @@ def getAllCountData(countPdf, peak_start, peak_end):
     totalPeak1 = "NA"
     totalPeak2 = "NA"
     speedLimit = "NA"
+    speedAvg = ["NA", "NA"]
+    speedAvg1 = "NA"
+    speedAvg2 = "NA"
     speed85th = ["NA", "NA"]
     speed85th1 = "NA"
     speed85th2 = "NA"
+    speed50th = ["NA", "NA"]
+    speed50th1 = "NA"
+    speed50th2 = "NA" 
     f3_f13 = ["NA", "NA"]
     f3_f13_1 = "NA"
     f3_f13_2 = "NA"
@@ -245,7 +259,9 @@ def getAllCountData(countPdf, peak_start, peak_end):
         pdf=pdfquery.PDFQuery(countPdf)
         pdf.load(page)
 
-        #check page size
+        ###########################################
+        # check page size and set field locations #
+        ###########################################
         pageSize = str(pdf.get_layout(0))[11:-10]
         pageSizeList = pageSize.split(",")
 
@@ -295,14 +311,15 @@ def getAllCountData(countPdf, peak_start, peak_end):
             speedToBox = [106, 514, 330, 526]
             speedMuniBox = [324, 514, 460, 526]
             speedDirBox = [106, 505, 300, 517]
+            speedAvgBox = [190, 130, 220, 160]
             speed85thBox = [340, 130, 380, 160]
+            speed50thBox = [260, 130, 300, 160]
             speedLimitBox = [375, 505, 400, 517]
             
             
         elif "842.000" in pageSizeList or "595.000" in pageSizeList:
             		    
             #A4 Standard Vol bbox locations 
-            #subtract 17 from 8.5x11 y cords
             stationBox = [34, 560, 186, 612] #works for A4 and 8.5
             dateBox = [35, 499, 161, 513] #good
             roadBox = [98, 530, 320, 543] #good
@@ -346,7 +363,9 @@ def getAllCountData(countPdf, peak_start, peak_end):
             speedToBox = [106, 496, 320, 509] #good[106, 514, 330, 526[
             speedMuniBox = [320, 496, 460, 509] #good[324, 514, 460, 526[
             speedDirBox = [106, 487, 300, 501] #good[106, 505, 300, 517[
-            speed85thBox = [311, 105, 365, 139]
+            speedAvgBox = [190, 105, 220, 139] #190, 130, 220, 160
+            speed85thBox = [311, 105, 365, 139] #[340, 130, 380, 160]
+            speed50thBox = [260, 105, 290, 139] #[260, 130, 300, 160]
             speedLimitBox = [375, 488, 460, 501]			
 			
 			
@@ -596,7 +615,12 @@ def getAllCountData(countPdf, peak_start, peak_end):
                     AADT2 = pdf.pq('LTTextLineHorizontal:in_bbox("%s")'%(','.join(str(cord) for cord in specialAADT2Box))).text()
 
                     specialVolPageCount += 1
-					
+		    ##########
+                    #  Peak  #
+                    ##########
+                    totalPeak1 = "User Declined"
+                    totalPeak2 = "User Declined"
+                    
                     ##############
                     #   Status   #
                     ##############
@@ -712,6 +736,34 @@ def getAllCountData(countPdf, peak_start, peak_end):
                 pageType = "speed"
                 print "Report type: ", pageType
                 if spdPageCount == 0: #since we can pull data from a single speed page, we only read the first page of that type
+
+                    #############
+                    # Avg Speed #
+                    #############
+                    speedAvg = pdf.pq('LTTextLineHorizontal:in_bbox("%s")'%(','.join(str(cord) for cord in speedAvgBox))).text()
+                    speedAvg = speedAvg.split()
+                    if len(speedAvg) == 2:
+                        speedAvg1 = speedAvg[0]
+                        speedAvg2 = speedAvg[1]
+                    else:
+                        speedAvg1 = speedAvg[0]
+                        speedAvg2 = "NA"
+                    
+                    ##############
+                    # 50th speed #
+                    ##############
+                    speed50th = pdf.pq('LTTextLineHorizontal:in_bbox("%s")'%(','.join(str(cord) for cord in speed50thBox))).text()
+                    speed50th = speed50th.split()
+                    if len(speed50th) == 2:
+                        speed50th1 = speed50th[0]
+                        speed50th2 = speed50th[1]
+                    else:
+                        speed50th1 = speed50th[0]
+                        speed50th2 = "NA"
+
+                    ##############
+                    # 85th speed #
+                    ##############    
                     speed85th = pdf.pq('LTTextLineHorizontal:in_bbox("%s")'%(','.join(str(cord) for cord in speed85thBox))).text()
                     speed85th = speed85th.split()
                     if len(speed85th) == 2:
@@ -720,8 +772,12 @@ def getAllCountData(countPdf, peak_start, peak_end):
                     else:
                         speed85th1 = speed85th[0]
                         speed85th2 = "NA"
-                                    
+
+                    ###############
+                    # Speed limit #
+                    ###############
                     speedLimit = pdf.pq('LTTextLineHorizontal:in_bbox("%s")'%(','.join(str(cord) for cord in speedLimitBox))).text()
+
                     spdPageCount +=1
 
                     ################################################
@@ -791,7 +847,7 @@ def getAllCountData(countPdf, peak_start, peak_end):
     #outside of the page loop
     #create a list of the outputs generated for the loaded pdf
     stationData = [(station),(date), (roadName), (fromName), (toName), (municipality), (year), "", "",
-                            (AADT1), (AADT2), (totalPeak1), (totalPeak2), (speedLimit),
+                            (AADT1), (AADT2), (totalPeak1), (totalPeak2), (speedLimit), (speedAvg1), (speedAvg2), (speed50th1), (speed50th2),
                             (speed85th1), (speed85th2),(f4_f13_1), (f4_f13_2), (f3_f13_1), (f3_f13_2), (direction1),(direction2), (status), (fileName)]
         
     return stationData
@@ -825,6 +881,7 @@ if __name__ == '__main__':
     #########################
         # So this gets a little weird.  pool.map which is used to multiprocess the count files only acepts
         # a function (getAllcountData) and an iterable source to perform the function on (count list).
+        # This is problematic as getAllCountData requires 3 arguments which we cannot directly pass to the function
         # In multiprocessing each process is separate and is encapsulated in its own environment so utilizing a
         # global variable for peak hour start and stop will not work.
         # Instead we can use itertools to combine and repeat the arguments for the countPdf list and create a single argument containing all 3 arguments
@@ -840,22 +897,19 @@ if __name__ == '__main__':
 	###################
         manualCounts = []
         for station in countData:
-            if station[22] == "3 Page Vol":
+            if station[26] == "3 Page Vol":
                 manualCounts.append(station)#appends the station data into manualCounts
-        if len(manualCounts) > 0:
+        if len(manualCounts) > 0:        
             print "There are", len(manualCounts), "files where TCR cannot automatically extract the peak hour data"
-            startManualPeak = raw_input("Would you like to input the peak hour data manually? (y or n): ")
-            if startManualPeak == "n":
-                totalPeak1 = "User Declined"
-                totalPeak2 = "User Declined"
+            startManualPeak = raw_input("Would you like to input the peak hour data manually? (y or n): ")  
                                        
             if startManualPeak == "y":
-                countData = [station for station in countData if station[22] != "3 Page Vol"] #removing stations that need manual input
+                countData = [station for station in countData if station[26] != "3 Page Vol"] #removing stations that need manual input from main list
                 for station in manualCounts:
                     directionList = [] #clearing lists so station data is not added together
                     totalPeakList = []
-                    os.startfile((str(os.curdir)[:-1]) + (station[23])) #opens the pdf 
-                    directionList.extend((station[20], station[21])) 
+                    os.startfile((str(os.curdir)[:-1]) + (station[27])) #opens the pdf 
+                    directionList.extend((station[24], station[25])) 
                     for direction in directionList:
                             hourlyUserInput = 0
                             for hour in range(peak_start, peak_end):
@@ -871,8 +925,9 @@ if __name__ == '__main__':
                     station.insert(11, totalPeakList[0])
                     station.pop(12)
                     station.insert(12, totalPeakList[1])
-                countData.extend(manualCounts)
-                countData.sort()
+            #if startManualPeak == "n":  
+            countData.extend(manualCounts)
+            countData.sort()
                     			
 	#########################
 	#   Format for Output   #
