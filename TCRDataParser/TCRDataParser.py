@@ -13,7 +13,7 @@ import time #needed to audit
 #                             TCRDataParser                                 #
 #                   Traffic Count Report Data Parser                        #
 #                                                                           #
-#                                 v0.9.4b                                   #
+#                                 v0.9.5b                                   #
 #                                                                           #
 #                               Created by                                  # 
 #                              David  Staas                                 #
@@ -63,7 +63,7 @@ def startup():
     global start_time
     
     
-    version = "0.9.4b"
+    version = "0.9.5b"
     countData = [] # Global list to store all the station information
 
     print "TCR Data Parser v" + version
@@ -270,8 +270,8 @@ def getAllCountData(countPdf, peak_start, peak_end):
             #Standard Vol bbox locations
             stationBox = [34, 560, 186, 612]
             dateBox = [35, 516, 161, 530]
-            roadBox = [98, 547, 320, 560]
-            fromBox = [295, 546, 480, 560]
+            roadBox = [126, 52, 295, 67] #footer numbers replacing #header numbers[98, 547, 320, 560]
+            fromBox = [295, 52, 480, 67] #footer numbers replacing header numbers[295, 546, 480, 560] 
             toBox = [484, 546, 686, 560]
             muniBox = [635, 537, 750, 549]
             dirBox = [35, 537, 250, 550]
@@ -296,7 +296,7 @@ def getAllCountData(countPdf, peak_start, peak_end):
             #class bbox locations
             classStationBox = [524, 737, 558, 752]
             classDateBox = [336, 742, 370, 751]
-            classRoadBox = [183, 741, 330, 751]
+            classRoadBox = [182, 741, 330, 751]
             classFromBox = [75, 722, 230, 731]
             classToBox = [75, 716, 230, 725]
             classDirBox = [368, 716, 558, 734]
@@ -450,11 +450,16 @@ def getAllCountData(countPdf, peak_start, peak_end):
                     ################
                     try:
                         municipality = pdf.pq('LTTextLineHorizontal:in_bbox("%s")'%(','.join(str(cord) for cord in muniBox))).text()
-                        municipality = municipality.split()
-                        if municipality[1] in {"TOWN:", "CITY:", "VILLAGE:"}:
-                            municipality = municipality[1][:-1].title() + " of " + municipality[0].title()
-                        else:
-                            municipality = municipality[0][:-1].title() + " of " + municipality[1].title()
+                        municipality = municipality.split()                        
+                        titleList = ["TOWN:", "CITY:", "VILLAGE:"]
+                        for title in titleList: #searches municipality string for the title: town, city...
+                            try:
+                                titleIndex = municipality.index(title) #index location of the title
+                                municipalityTitle = (municipality.pop(titleIndex)).title()[:-1] #removes title from list and removes the :
+                                municipality = " ".join(x for x in municipality) #combines the rest of the list
+                                municipality = municipalityTitle + " of " + municipality.title() #reinserts the title in the begining
+                            except ValueError:
+                                pass
                     except:
                         print "Issues reading municipality data"
                         municipality = "Unknown"
@@ -698,8 +703,12 @@ def getAllCountData(countPdf, peak_start, peak_end):
                         #############
                         # Road Name #
                         #############
-                        roadName = roadName = pdf.pq('LTTextLineHorizontal:in_bbox("%s")'%(','.join(str(cord) for cord in classRoadBox))).text()
-                        roadName = roadname[11:]
+                        roadName = pdf.pq('LTTextLineHorizontal:in_bbox("%s")'%(','.join(str(cord) for cord in classRoadBox))).text()
+                        roadName = roadName.split("ROAD NAME: ")
+                        if len(roadName) >= 2:
+                            roadName = roadName[1]
+                        else:
+                            roadName = "Blank"
 						
                         #############
                         #  From     #
@@ -817,8 +826,19 @@ def getAllCountData(countPdf, peak_start, peak_end):
                         # Municipality #
                         ################
                         municipality = pdf.pq('LTTextLineHorizontal:in_bbox("%s")'%(','.join(str(cord) for cord in speedMuniBox))).text()
-                        municipality = municipality.title()
-                        municipality = municipality.replace(":", " of")
+                        municipality = municipality.split()                        
+                        titleList = ["TOWN:", "CITY:", "VILLAGE:"]
+                        for title in titleList: #searches municipality string for the title: town, city...
+                            try:
+                                titleIndex = municipality.index(title) #index location of the title
+                                municipalityTitle = (municipality.pop(titleIndex)).title()[:-1] #removes title from list and removes the :
+                                municipality = " ".join(x for x in municipality) #combines the rest of the list
+                                municipality = municipalityTitle + " of " + municipality.title() #reinserts the title in the begining
+                            except ValueError:
+                                pass
+
+                        #municipality = municipality.title()
+                        #municipality = municipality.replace(":", " of")
                         
                         #############
                         # Direction #
