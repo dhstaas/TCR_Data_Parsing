@@ -918,7 +918,7 @@ if __name__ == '__main__':
         manualCounts = []
         for station in countData:
             if station[26] == "3 Page Vol":
-                manualCounts.append(station)#appends the station data into manualCounts
+                manualCounts.append(station)#appends 3 page station data into manualCounts
         if len(manualCounts) > 0:        
             print "There are", len(manualCounts), "files where TCR cannot automatically extract the peak hour data"
             startManualPeak = raw_input("Would you like to input the peak hour data manually? (y or n): ")  
@@ -945,9 +945,8 @@ if __name__ == '__main__':
                     station.insert(11, totalPeakList[0])
                     station.pop(12)
                     station.insert(12, totalPeakList[1])
-            #if startManualPeak == "n":  
-            countData.extend(manualCounts)
-            countData.sort()
+                countData.extend(manualCounts)            
+        countData.sort()
                     			
 	#########################
 	#   Format for Output   #
